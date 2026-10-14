@@ -1,0 +1,32 @@
+# Python runtime and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Credentials and host-specific MCP connections; publish only examples
+.env
+.env.*
+!.env.example
+.envrc
+mcp-config*.json
+!mcp-config.example.json
+.mcp.json
+.cursor/mcp.json
+.vscode/mcp.json
+.codex/config.toml
+
+# Private meal/order state, MCP responses and generated previews
+.mcpause/
+work/
+*.sqlite
+*.sqlite-*
+*.sqlite3*
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db

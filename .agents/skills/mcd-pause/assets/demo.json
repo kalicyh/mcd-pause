@@ -1,0 +1,15 @@
+{
+  "mode": "demo",
+  "source": "synthetic-example",
+  "context": {"label": "演示门店 · 自取"},
+  "foods": [
+    {"id":"DEMO-01","name":"鸡肉主食","kind":"main","reference_cents":1800,"nutrition":{"status":"demo","values":{"energyKcal":380,"protein":24,"fat":14,"carbohydrate":40,"sodium":680,"calcium":80}}},
+    {"id":"DEMO-02","name":"牛肉主食","kind":"main","reference_cents":2200,"nutrition":{"status":"demo","values":{"energyKcal":430,"protein":27,"fat":19,"carbohydrate":39,"sodium":780,"calcium":130}}},
+    {"id":"DEMO-03","name":"蛋白小食","kind":"side","reference_cents":1000,"nutrition":{"status":"demo","values":{"energyKcal":180,"protein":16,"fat":8,"carbohydrate":11,"sodium":380,"calcium":35}}},
+    {"id":"DEMO-04","name":"薯条","kind":"side","reference_cents":800,"nutrition":{"status":"demo","values":{"energyKcal":260,"protein":3,"fat":12,"carbohydrate":35,"sodium":180,"calcium":12}}},
+    {"id":"DEMO-05","name":"玉米杯","kind":"side","reference_cents":600,"nutrition":{"status":"demo","values":{"energyKcal":90,"protein":3,"fat":1,"carbohydrate":18,"sodium":30,"calcium":8}}},
+    {"id":"DEMO-06","name":"无糖饮料","kind":"drink","reference_cents":400,"nutrition":{"status":"demo","values":{"energyKcal":0,"protein":0,"fat":0,"carbohydrate":0,"sodium":20,"calcium":0}}},
+    {"id":"DEMO-07","name":"牛奶","kind":"drink","reference_cents":700,"nutrition":{"status":"demo","values":{"energyKcal":120,"protein":8,"fat":6,"carbohydrate":9,"sodium":90,"calcium":240}}},
+    {"id":"DEMO-08","name":"未收录营养的新品","kind":"main","reference_cents":2100,"nutrition":{"status":"unknown","values":{"energyKcal":null,"protein":null,"fat":null,"carbohydrate":null,"sodium":null,"calcium":null}}}
+  ]
+}

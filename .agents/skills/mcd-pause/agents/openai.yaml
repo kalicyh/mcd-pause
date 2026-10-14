@@ -1,0 +1,11 @@
+interface:
+  display_name: "麦麦暂停键 · McPause"
+  short_description: "在 Codex 中暂停工作、安排一餐，再接回思路的智能用餐助手"
+  default_prompt: "使用 $mcd-pause 帮我安排这一餐，并记下回来后继续工作的第一步。"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "mcd-mcp"
+      description: "麦当劳中国官方 MCP；凭据由宿主连接或本地环境变量提供"
+      transport: "streamable_http"
+      url: "https://mcp.mcd.cn"
