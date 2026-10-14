@@ -12,6 +12,23 @@ python3 "$SKILL_DIR/scripts/mcpause.py" render-reminder --meal lunch --out /ABSO
 
 用户点击开始、说“我要吃饭”或主动提出想吃的餐品后，直接打开浏览器，不再多问一次是否选餐。只问缺少的位置、方式等关键数据。只问价格或解释梗时不擅自打开。界面不可用时用文字继续。
 
+## 四种可操作的聊天窗口
+
+统一入口 `render-window --view reminder|preferences|game|orders --out /ABSOLUTE/TASK/VIEW/window.html`。优先沿用当前任务的 `--state-dir`；浏览器状态在其 `--state-dir` 下的 `state/` 子目录，聊天查询、调度和庆祝也使用这个目录。按钮会明确引用生成它的 Skill 路径和状态目录，不更新全局技能或 Codex 配置。读宿主 visualize 指南后在聊天呈现生成结果；按钮通过宿主回传请求，不能把“已发送”称为操作成功。
+
+| 窗口 | 参数与实际处理 |
+| --- | --- |
+| 饭点提醒 | `--view reminder --meal lunch`，可带 `--intent`。开始点餐打开浏览器；延后与已安排执行真实提醒流程。 |
+| 偏好快选 | `--view preferences`，可带 `--intent`、`--constraints`。接收预算、推荐顺序、用户填写的营养目标；按本餐偏好查询菜单并打开浏览器，或进入小游戏。 |
+| 配餐小游戏 | `--view game --catalog work/catalog.json --constraints work/constraints.json`。只用当前门店真实单品与已匹配营养，缺失值保留未知；演示菜单会被拒绝。 |
+| 订单窗口 | `--view orders`，从同一状态目录读取最近三个已查询订单。点击查询后读取官方状态、执行 `order observe`，重新生成并呈现订单窗口；最近订单先查 `order-list`，再查询所选订单。 |
+
+偏好按钮里的选择数据仅用于本餐，把 constraints 保存到任务私有 JSON 后传入渲染命令；用户未要求记住时不执行 `profile --file`。新品排序要有官方新品证据，省钱按当前价格，高蛋白按已查营养排序，不能凭“高蛋白”按钮猜一个蛋白质目标。偏好用于推荐与置顶，后面仍是完整菜单。
+
+小游戏“用这份搭配选餐”携带真实编码和数量。先读取当前详情，核对规格、配料与必选项；不能给缺少必选项的单品猜参数。必选项不完整时打开该餐品详情补选，完整时通过下方 `--selection` 交接。已有餐单先读取、保留其他餐品与改配，不把小游戏结果直接变成订单。
+
+订单窗口“跟进到送达并庆祝”按 [定时任务](automations.md) 执行真实调度和庆祝设置；“停止跟进”只停止这单调度。窗口本身不在后台查询，不用模拟状态推进或前端动画冒充真实送达。状态变化后用最新查询结果重新呈现；只有 `order celebrate` 返回 fire=true 才调用宿主礼花工具。
+
 ## 真实完整菜单
 
 按 [用餐流程](meals.md) 取得当前门店的 query-meals 与餐品详情。catalog 保留所有返回餐品和 categories 的真实顺序/成员，不只保留某个关键词，不用营养分类替代官方分类。未知价格显示待核价，带 canWithOrder 的餐品保留展示，但不自动加卡。
@@ -29,7 +46,7 @@ python3 "$SKILL_DIR/scripts/mcpause.py" prepare-browser --catalog work/catalog.j
 python3 "$SKILL_DIR/scripts/serve_view.py" --session work/browser-session.json --state-dir work/browser-state
 ```
 
-prepare-browser 可带 --new-products、--quote、--card-comparison。用户要求送达庆祝后才带 --celebrate-delivery。核价证据见 [开卡优惠](membership.md)。会话文件以 0600 保存，不提交仓库或公开分享。
+prepare-browser 可带 --new-products、--quote、--card-comparison。`--selection work/selection.json` 接受 `{context, items}` 的完整餐单，门店、取餐方式、预约时间必须与当前菜单一致；后端按详情验证全部必选项后导入浏览器，再自动核价。已保存的浏览器餐单优先，刷新不会重新加入已移除的餐品；要换一份完整餐单，准备新的临时会话。用户要求送达庆祝后才带 --celebrate-delivery。核价证据见 [开卡优惠](membership.md)。会话文件以 0600 保存，不提交仓库或公开分享。
 
 优先复用已有 MCP 连接。本机进程使用 MCD_MCP_TOKEN 或 --token-stdin 的不回显输入；宿主提供已有凭据时只在进程内传给 Client，不写入会话 JSON、页面、URL 或日志。连接不可用时报告具体阻断，不安装依赖或修改全局配置。
 
@@ -43,9 +60,9 @@ prepare-browser 可带 --new-products、--quote、--card-comparison。用户要�
 
 ## 订单进度与送达庆祝
 
-订单页可输入真实订单号或主动查询最近订单。展示官方状态、取餐码、预计时间，不伪造进度百分比、倒计时、骑手坐标或路线。2026-10-14 的 query-order schema 有状态和预计时间，没有配送轨迹/地图接口；当前显示状态时间线并说明地图不可用。
+订单页可输入真实订单号或主动查询最近订单。突出官方状态、预计时间和阶段时间线，取餐码只在返回时展示。“配餐完成”高亮已备好阶段。切换订单收进折叠区；不展示地图接口说明，不伪造进度百分比、倒计时、骑手坐标或路线。
 
-“持续跟进”在页面打开时每三分钟检查，隐藏页面暂停网络检查；终态、两小时、30 次成功查询或查询失败后停止。关闭页面不承诺继续运行。后台跟进另按 [定时任务](automations.md) 创建用户授权的宿主调度，避免重复跟进。
+查到进行中的订单后自动每三分钟检查，不需要勾选；刷新页面恢复已查询订单，隐藏页面暂停网络检查。终态、两小时、30 次成功查询或连续三次失败后停止。切换订单时丢弃旧查询结果，同一订单正在查询时合并请求。关闭页面不承诺继续运行。后台跟进另按 [定时任务](automations.md) 创建用户授权的宿主调度，避免重复跟进。
 
 送达礼花需要先观察到当前订单未完成，再读到明确“已送达”，或官方 orderStatus=6 且证据表明是外送。先原子占用庆祝事件，再播放一次。首次查看已完成历史订单、到店自取完成、取消、刷新与重复查询不触发。减少动态效果时只显示送达文字。
 
@@ -53,4 +70,4 @@ prepare-browser 可带 --new-products、--quote、--card-comparison。用户要�
 
 render-shop 仍可输出聊天内文字选餐或 --standalone 静态图文预览；静态预览无 API，仅提供复制请求的后备路径，不称已自动核价。日常使用优先上面的浏览器会话。
 
-营养小游戏可用 render --catalog ... --out ... 按需展示。demo --inline 使用明确虚构数据，不联网、下单或创建提醒，不能当作真实菜单/订单。
+`render --view game --catalog ... --out ...` 兼容原配餐面板；日常简单操作使用 `render-window`。`demo --inline` 使用明确虚构数据，不联网、下单或创建提醒，不能当作真实菜单/订单。

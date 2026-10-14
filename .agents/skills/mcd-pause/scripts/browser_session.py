@@ -104,9 +104,24 @@ class BrowserSession:
             raise ValueError('请先核实当前门店的配送地址或取餐方式，再开启订单确认')
         self.draft_ids, self.order_types = set(), {}
         self.comparisons = {}
+        self.initial_cart = None
+
+    def selected_cart(self):
+        selection = self.config.get('selection')
+        if not selection:
+            return None
+        if self.initial_cart is None:
+            context = selection.get('context', {})
+            if {k: context.get(k) for k in self.context} != self.context or context.get('reservationDate') != self.context.get('reservationDate'):
+                raise ValueError('所选餐单的门店、取餐方式或预约时间与当前菜单不一致')
+            request = self.request(selection.get('items'))
+            self.initial_cart = [{'item': item, 'name': self.foods[item['productCode']]['name'],
+                                  'summary': self.summary([item])} for item in request['items']]
+        return self.initial_cart
 
     def page(self, token):
         return render_shop(self.catalog, self.details, standalone=True, browser_token=token,
+                           initial_cart=self.selected_cart(),
                            keyword=self.config.get('keyword'), selected=self.config.get('selected'),
                            news=self.config.get('news'), quote=self.config.get('quote'),
                            card_comparison=self.config.get('card_comparison'))

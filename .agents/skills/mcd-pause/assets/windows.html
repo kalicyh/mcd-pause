@@ -1,0 +1,96 @@
+<div id="mcpause-window">
+  <section data-view="preferences" hidden aria-label="本餐偏好">
+    <div class="viz-controls">
+      <label class="form-label">想吃什么<input class="form-control" data-intent maxlength="80" placeholder="例如：四件套、薯条"></label>
+      <label class="form-label">预算上限（元）<input class="form-control" data-budget type="number" min="1" max="1000" step="0.01" required></label>
+    </div>
+    <div class="viz-row" role="group" aria-label="推荐顺序">
+      <button class="btn" type="button" data-priority="new" aria-pressed="true">新品优先</button>
+      <button class="btn" type="button" data-priority="saving" aria-pressed="false">省钱优先</button>
+      <button class="btn" type="button" data-priority="protein" aria-pressed="false">高蛋白</button>
+    </div>
+    <details><summary>营养目标</summary><div class="viz-controls">
+      <label class="form-label">能量上限（kcal）<input class="form-control" data-kcal type="number" min="0" step="1" placeholder="不限制"></label>
+      <label class="form-label">蛋白质下限（g）<input class="form-control" data-protein type="number" min="0" step="0.1" placeholder="不限制"></label>
+      <label class="form-label">钠上限（mg）<input class="form-control" data-sodium type="number" min="0" step="1" placeholder="不限制"></label>
+    </div></details>
+    <div class="viz-row">
+      <button class="btn btn-primary" type="button" data-action="menu">按偏好看菜单</button>
+      <button class="btn" type="button" data-action="game">配餐小游戏</button>
+    </div>
+  </section>
+  <section data-view="orders" hidden aria-label="订单进度">
+    <div data-orders></div>
+    <label class="form-label">订单号<input class="form-control" data-order-id maxlength="80" autocomplete="off"></label>
+    <div class="viz-row">
+      <button class="btn btn-primary" type="button" data-action="query">查询进度</button>
+      <button class="btn" type="button" data-action="follow">跟进到送达并庆祝</button>
+      <button class="btn btn-ghost" type="button" data-action="stop">停止跟进</button>
+      <button class="btn btn-ghost" type="button" data-action="recent">最近订单</button>
+    </div>
+  </section>
+  <p class="text-small text-muted" data-feedback role="status" aria-live="polite"></p>
+  <textarea class="form-control" data-fallback readonly hidden aria-label="复制请求到聊天"></textarea>
+  <script type="application/json" id="mcpause-window-data">__MCPAUSE_WINDOW_DATA__</script>
+  <script>
+  (()=>{
+    const root=document.getElementById('mcpause-window'),one=s=>root.querySelector(s),all=s=>[...root.querySelectorAll(s)];
+    const data=JSON.parse(one('#mcpause-window-data').textContent),constraints=data.constraints||{},priorities={new:'新品优先',saving:'省钱优先',protein:'高蛋白'};
+    let priority='new',pending=false;
+    const key=JSON.stringify([data.view,data.state_dir,data.intent,data.constraints]);
+    const prefix='使用 [$mcd-pause]('+data.skill_path+')。'+(data.state_dir?'沿用状态目录 '+data.state_dir+'。':'');
+    one('[data-view="'+data.view+'"]').hidden=false;
+    one('[data-intent]').value=data.intent;one('[data-budget]').value=(constraints.budget_cents||3000)/100;
+    for(const [field,name] of [['kcal','max_kcal'],['protein','min_protein'],['sodium','max_sodium']])one('[data-'+field+']').value=constraints[name]??'';
+    function preferences(){
+      if(!all('[data-view="preferences"] input').every(input=>input.reportValidity()))throw new Error('请填写有效的预算和营养目标。');
+      return {intent:one('[data-intent]').value.trim(),priority,
+        constraints:{budget_cents:Math.round(Number(one('[data-budget]').value)*100),
+          ...Object.fromEntries([['kcal','max_kcal'],['protein','min_protein'],['sodium','max_sodium']].map(([field,name])=>[name,one('[data-'+field+']').value===''?null:Number(one('[data-'+field+']').value)]))}};
+    }
+    function remember(){
+      const inputs=Object.fromEntries(['intent','budget','kcal','protein','sodium','order-id'].map(k=>[k,one('[data-'+k+']').value]));
+      if(typeof window.openai?.setWidgetState==='function')Promise.resolve(window.openai.setWidgetState({modelContent:{view:data.view,priority,intent:inputs.intent},privateContent:{key,priority,inputs}})).catch(()=>{});
+    }
+    function restore(saved){const state=saved?.privateContent;if(state?.key!==key)return;
+      if(priorities[state.priority])priority=state.priority;
+      for(const field of ['intent','budget','kcal','protein','sodium','order-id'])if(typeof state.inputs?.[field]==='string')one('[data-'+field+']').value=state.inputs[field];
+      all('[data-priority]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.priority===priority)));
+    }
+    async function send(message,title){
+      if(pending)return;pending=true;all('button').forEach(button=>button.disabled=true);
+      const prompt=prefix+message;one('[data-feedback]').textContent='';
+      try{
+        if(typeof window.openai?.sendFollowUpMessage!=='function'){one('[data-fallback]').hidden=false;one('[data-fallback]').value=prompt;one('[data-feedback]').textContent='将下面的请求复制到聊天即可继续。';return;}
+        await window.openai.sendFollowUpMessage({prompt,title});one('[data-feedback]').textContent='请求已发送，等待查询结果。';
+      }catch{one('[data-feedback]').textContent='请求未完成，可以重试。';}
+      finally{pending=false;all('button').forEach(button=>button.disabled=false);}
+    }
+    for(const order of [...(data.orders||[])].reverse()){
+      const row=document.createElement('p'),button=document.createElement('button');button.type='button';button.className='btn btn-ghost';
+      button.textContent=(order.delivered?'已送达':order.label||'待查询')+' · 尾号 '+order.order_id.slice(-6);
+      button.addEventListener('click',()=>{one('[data-order-id]').value=order.order_id;remember();});row.append(button);
+      if(order.eta&&!order.terminal){const eta=document.createElement('span');eta.className='text-small text-muted';eta.textContent=' 预计时间 '+order.eta;row.append(eta);}
+      if(order.updated_at){const time=document.createElement('span');time.className='text-small text-muted';time.textContent=' · '+new Date(order.updated_at).toLocaleString('zh-CN');row.append(time);}
+      one('[data-orders]').append(row);
+    }
+    one('[data-order-id]').value=data.orders?.at(-1)?.order_id||'';
+    all('[data-priority]').forEach(button=>button.addEventListener('click',()=>{priority=button.dataset.priority;all('[data-priority]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));remember();}));
+    all('[data-action]').forEach(button=>button.addEventListener('click',async()=>{
+      try{
+        const action=button.dataset.action;
+        if(action==='menu'||action==='game'){
+          const selection=preferences();remember();
+          await send((action==='menu'?'请按本餐偏好查询当前门店菜单，打开浏览器图文菜单；想吃的置顶，后面保留完整分类。':'请查询当前门店菜单与营养，使用 render-window --view game 展示可实际选餐的小游戏。')+'本餐偏好不保存为长期设置，不创建订单或开卡。推荐顺序：'+priorities[priority]+'。选择数据：'+JSON.stringify(selection),button.textContent);return;
+        }
+        if(action==='recent'){await send('请查询最近订单，用 render-window --view orders 展示真实结果供我选择。',button.textContent);return;}
+        const id=one('[data-order-id]').value.trim();if(!/^[A-Za-z0-9_-]{1,80}$/.test(id))throw new Error('请选择订单或填写有效订单号。');remember();
+        const actions={query:'请查询订单 '+id+' 的当前状态，并更新订单窗口。',follow:'请持续跟进订单 '+id+'，状态变化时更新订单窗口；确认外送送达后庆祝一次。按 automations.md 复用或建立本单调度，终态或达到上限后停止。',stop:'请停止订单 '+id+' 的持续跟进调度，保留订单本身，不取消订单。'};
+        await send(actions[action],button.textContent);
+      }catch(error){one('[data-feedback]').textContent=error.message;}
+    }));
+    all('input').forEach(input=>input.addEventListener('change',remember));
+    restore(window.openai?.widgetState);window.addEventListener('openai:set_globals',event=>restore(event.detail?.globals?.widgetState));
+  })();
+  </script>
+</div>

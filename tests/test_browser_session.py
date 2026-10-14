@@ -100,6 +100,27 @@ class BrowserTests(unittest.TestCase):
         self.assertIn('BROWSER_NONCE', page)
         self.assertNotIn('__MCPAUSE_', page)
 
+    def test_selected_meal_handoff_preserves_modifications_and_is_read_only(self):
+        self.config['selection'] = {'context': self.config['catalog']['context'], 'items': [ITEM]}
+        cart = self.session.selected_cart()
+        self.assertEqual(cart[0]['item'], ITEM)
+        self.assertIn('少冰', cart[0]['summary'][0])
+        self.session.page('NONCE')
+        self.session.page('NONCE')
+        self.assertEqual([name for name, _ in self.client.calls], ['query-meal-detail'])
+        self.assertEqual(self.client.created, 0)
+
+    def test_handoff_rejects_wrong_context_or_unverified_choices(self):
+        self.config['selection'] = {'context': {**self.config['catalog']['context'], 'storeCode': '9999999'}, 'items': [ITEM]}
+        with self.assertRaises(ValueError):
+            self.session.selected_cart()
+        self.assertEqual(self.client.calls, [])
+        self.config['selection']['context'] = self.config['catalog']['context']
+        self.config['selection']['items'] = [{'productCode': '10', 'quantity': 1}]
+        with self.assertRaises(ValueError):
+            self.session.selected_cart()
+        self.assertEqual(self.client.created, 0)
+
     def test_invalid_modifications_stop_before_quote(self):
         bad = copy.deepcopy(ITEM)
         bad['modification']['values'][0]['key'] = 'unverified'

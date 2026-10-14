@@ -26,7 +26,7 @@
 
 ## 持续跟进订单
 
-用户请求持续跟进，或明确启用此功能后，为本单创建同聊天的有限期 heartbeat。建议三分钟一次，每次先运行 `order watch`；原生 MCP 路径先运行 `order poll-check --order-id ...`，只有 poll=true 才查询并执行 `order observe`，查询或解析失败则执行 `order poll-failed` 记录连续失败。
+用户请求持续跟进，或点击订单窗口“跟进到送达并庆祝”后，为本单复用或创建同聊天的有限期 heartbeat；这个按钮也明确开启本单送达庆祝，按现有状态设置 `celebrate_enabled`。建议三分钟一次，每次先运行 `order watch`；原生 MCP 路径先运行 `order poll-check --order-id ...`，只有 poll=true 才查询并执行 `order observe`，查询或解析失败则执行 `order poll-failed` 记录连续失败。浏览器页面会自动检查已选择的进行中订单，无需另建调度；只有用户要求关闭页面后继续时才使用宿主调度。
 
 提示词必须包含：真实 orderId、本技能位置、只读查询、状态不变保持静默、状态变化才更新界面，以及终态/两小时/30 次成功检查/连续三次失败的停止条件。`order watch` 返回 stop=true 时通过宿主删除或暂停本单临时自动化，告知真实原因。未知状态不得视为终态。
 

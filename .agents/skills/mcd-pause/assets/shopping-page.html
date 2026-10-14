@@ -26,9 +26,27 @@
     #mcpause-browser table{width:100%;border-collapse:collapse;margin:12px 0;font-variant-numeric:tabular-nums}
     #mcpause-browser th,#mcpause-browser td{padding:10px 4px;border-bottom:1px solid var(--line);text-align:right}
     #mcpause-browser th:first-child,#mcpause-browser td:first-child{text-align:left}
-    #mcpause-browser ol{display:flex;gap:14px;flex-wrap:wrap;padding:0;list-style:none}
-    #mcpause-browser li{color:var(--muted);padding:8px 12px;border-radius:8px;background:light-dark(#f4f4f4,#292929)}
-    #mcpause-browser li[aria-current=step]{color:#28200d;background:#ffbc0d}
+    #mcpause-browser .order-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+    #mcpause-browser .order-head h2{margin:0;font-size:18px}
+    #mcpause-browser #order-list{font-size:13px}
+    #mcpause-browser .order-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:8px 0 28px}
+    #mcpause-browser #order-status{font-size:28px;line-height:1.3}
+    #mcpause-browser .order-eta{display:grid;gap:4px;font-variant-numeric:tabular-nums}
+    #mcpause-browser .order-eta strong{font-size:30px;line-height:1.2}
+    #mcpause-browser .order-steps{display:flex;padding:0;margin:0 0 24px;list-style:none;gap:4px}
+    #mcpause-browser .order-steps li{flex:1;min-width:0;color:var(--muted);font-size:12px;position:relative;padding-top:15px;text-align:center}
+    #mcpause-browser .order-steps li::before{content:'';position:absolute;inset:0 0 auto;height:4px;border-radius:2px;background:var(--line)}
+    #mcpause-browser .order-steps li[data-passed]::before{background:light-dark(#b98b17,#a18436)}
+    #mcpause-browser .order-steps li[aria-current=step]{font-weight:650;color:var(--ink)}
+    #mcpause-browser .order-steps li[aria-current=step]::before{background:#ffbc0d}
+    #mcpause-browser .order-meta{display:flex;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin-top:24px}
+    #mcpause-browser .order-meta p{margin:0}
+    #mcpause-browser #order-pickup:not(:empty){display:inline-block;background:var(--soft);padding:10px 14px;border-radius:8px;margin:0;font-variant-numeric:tabular-nums}
+    #mcpause-browser #order-picker{margin-top:18px;border-top:1px solid var(--line)}
+    #mcpause-browser .order-search{display:flex;align-items:end;gap:12px;padding:0 0 12px;flex-wrap:wrap}
+    #mcpause-browser .order-search label{display:grid;gap:6px;flex:1;min-width:180px;color:var(--muted);font-size:12px}
+    #mcpause-browser #order-id{width:100%;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+    #mcpause-browser #recent-orders:not(:empty){padding-bottom:20px}
     #mcpause-browser dialog{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);width:540px;max-width:calc(100vw - 32px);max-height:90dvh;overflow:auto;padding:0}
     #mcpause-browser dialog::backdrop{background:rgb(0 0 0/.72)}
     #mcpause-browser [hidden]{display:none!important}
@@ -109,17 +127,15 @@ __MCPAUSE_SHOP_FRAGMENT__
     <section id="checkout-result" class="block" hidden aria-label="订单与支付"></section>
   </main>
   <section id="orders-page" class="block" hidden aria-label="订单进度">
-    <h2>我的订单</h2>
-    <div class="bar"><label>订单号 <input id="order-id" type="text" autocomplete="off"></label><button id="order-query" type="button" class="primary">查询进度</button><button id="order-list" type="button">选择最近订单</button></div>
+    <header class="order-head"><h2>我的订单</h2><button id="order-list" type="button">最近订单</button></header>
     <div id="recent-orders"></div>
     <div id="order-detail" hidden>
-      <h3 id="order-status"></h3><p class="muted" id="order-checked"></p>
-      <ol aria-label="订单阶段"><li data-stage="awaiting_payment">待支付</li><li data-stage="accepted">备餐中</li><li data-stage="delivering">配送中</li><li data-stage="completed">已完成</li></ol>
-      <p id="order-eta"></p><p id="order-pickup"></p>
-      <p class="muted">当前接口不提供骑手位置或配送轨迹。</p>
-      <label><input id="order-follow" type="checkbox">页面打开时持续跟进，每 3 分钟检查一次</label>
-      <p id="order-watch-note" class="muted"></p>
+      <div class="order-hero"><h3 id="order-status" aria-live="polite"></h3><div id="order-eta" class="order-eta"><span id="order-eta-label" class="muted">预计送达</span><strong id="order-eta-value"></strong></div></div>
+      <ol class="order-steps" aria-label="订单阶段"><li data-stage="awaiting_payment">待支付</li><li data-stage="accepted">备餐中</li><li data-stage="ready">已备好</li><li data-stage="delivering">配送中</li><li data-stage="completed">已完成</li></ol>
+      <p id="order-pickup" hidden></p>
+      <div class="order-meta muted"><p id="order-watch-note" role="status"></p><p id="order-checked"></p></div>
     </div>
+    <details id="order-picker" open><summary id="order-picker-label">输入订单号</summary><div class="order-search"><label>订单号<input id="order-id" type="text" autocomplete="off" placeholder="输入订单号查询进度" maxlength="80"></label><button id="order-query" type="button" class="primary">查看订单</button></div></details>
   </section>
   <p id="browser-feedback" role="status" aria-live="polite"></p>
   <dialog id="confirm-order" aria-labelledby="confirm-title"><header class="confirm-head"><h2 id="confirm-title">确认订单</h2><button id="confirm-cancel" type="button">返回修改</button></header><div id="confirm-summary"></div><div class="confirm-footer"><p id="confirm-price" class="payable"></p><button id="confirm-submit" type="button" class="primary">确认下单</button><p id="confirm-expiry"></p></div><div id="confirm-feedback" role="status"></div></dialog>

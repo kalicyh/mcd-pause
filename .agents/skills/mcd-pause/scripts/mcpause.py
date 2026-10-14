@@ -11,7 +11,7 @@ from mcp_client import Client, READ_TOOLS, unwrap
 from nutrition import catalog_from_menu, nutrition_rows, recommend, cents
 from orders import make_draft, submit, validate_request, authorize, complete
 from state import State, now_utc
-from views import ASSETS, render_panel, render_reminder
+from views import ASSETS, render_panel, render_reminder, render_window
 from shopping import render_shop
 from membership import with_order_options, comparison_for_view
 
@@ -43,6 +43,13 @@ def main(argv=None):
     reminder_view.add_argument('--meal', choices=['breakfast', 'lunch', 'dinner'], required=True)
     reminder_view.add_argument('--intent', help='用户本次想吃的品类')
     reminder_view.add_argument('--out', required=True)
+    window = sub.add_parser('render-window', help='实际可操作的提醒、偏好、配餐或订单聊天窗口')
+    window.add_argument('--view', choices=['reminder', 'preferences', 'game', 'orders'], required=True)
+    window.add_argument('--meal', choices=['breakfast', 'lunch', 'dinner'])
+    window.add_argument('--intent', help='本次想吃的品类')
+    window.add_argument('--catalog', help='game 窗口所需的真实菜单与营养数据')
+    window.add_argument('--constraints', help='本餐预算与营养目标 JSON；不保存为长期偏好')
+    window.add_argument('--out', required=True)
     profile = sub.add_parser("profile", help="查看或更新本地偏好；不会创建提醒")
     profile.add_argument("--file")
     sub.add_parser("doctor", help="只读联调：工具清单、服务器时间、营养表")
@@ -68,6 +75,8 @@ def main(argv=None):
     panel.add_argument("--catalog", required=True)
     panel.add_argument("--out", required=True)
     panel.add_argument("--standalone", action="store_true")
+    panel.add_argument('--view', choices=['meal', 'game', 'orders'], default='meal')
+    panel.add_argument('--constraints', help='本餐预算与营养目标 JSON')
     shop = sub.add_parser("render-shop", help="生成聊天内推荐与改配页面")
     for name in ("catalog", "details", "out"):
         shop.add_argument("--" + name, required=True)
@@ -80,7 +89,7 @@ def main(argv=None):
     browser = sub.add_parser('prepare-browser', help='准备临时浏览器会话数据，不启动服务或下单')
     for name in ('catalog', 'details', 'out'):
         browser.add_argument('--' + name, required=True)
-    for name in ('new-products', 'keyword', 'selected', 'quote', 'card-comparison', 'checkout'):
+    for name in ('new-products', 'keyword', 'selected', 'quote', 'card-comparison', 'checkout', 'selection'):
         browser.add_argument('--' + name)
     browser.add_argument('--celebrate-delivery', action='store_true', help='用户要求后才启用送达庆祝')
     cards = sub.add_parser("card-options", help="从真实菜单提取随单购卡参数；不推测卡费或开卡")
@@ -142,12 +151,12 @@ def main(argv=None):
     if args.command == "demo":
         return {"path": save(args.out, render_panel(load(ASSETS / "demo.json"), inline=args.inline)), "mode": "demo"}
     if args.command == 'render-reminder':
-        return {'path': save(args.out, render_reminder(args.meal, args.intent))}
+        return {'path': save(args.out, render_reminder(args.meal, args.intent, args.state_dir))}
     if args.command == 'prepare-browser':
         config = {'catalog': load(args.catalog), 'details': load(args.details),
                   'keyword': args.keyword, 'selected': args.selected,
                   'celebrate_delivery': args.celebrate_delivery}
-        for name, attribute in (('news', 'new_products'), ('quote', 'quote'), ('card_comparison', 'card_comparison'), ('checkout', 'checkout')):
+        for name, attribute in (('news', 'new_products'), ('quote', 'quote'), ('card_comparison', 'card_comparison'), ('checkout', 'checkout'), ('selection', 'selection')):
             path = getattr(args, attribute)
             if path:
                 config[name] = load(path)
@@ -199,6 +208,13 @@ def main(argv=None):
             return state.configure(load(args.file)) if args.file else state.profile()
         if args.command == "reminder":
             return state.reminder(args.meal, args.at, args.action, args.minutes)
+        if args.command == 'render-window':
+            profile = state.profile()
+            if args.constraints:
+                profile['constraints'] = load(args.constraints)
+            orders = sorted([state.get(k) for k in state.keys('order:')], key=lambda o: o.get('updated_at', ''))[-3:]
+            catalog = load(args.catalog) if args.catalog else None
+            return {'path': save(args.out, render_window(args.view, profile, catalog, orders, args.meal, args.intent, state.path.parent))}
         if args.command == "render":
             catalog = load(args.catalog)
             context = catalog.get("context", {})
@@ -207,7 +223,10 @@ def main(argv=None):
             drafts = [d for d in drafts if all(d["request"].get(k) == context[k]
                       for k in ("storeCode", "beType", "orderType", "beCode", "reservationDate") if k in context)]
             draft = max(drafts, key=lambda d: d["created_at"]) if drafts else None
-            return {"path": save(args.out, render_panel(catalog, state.profile(), orders=orders, draft=draft, inline=not args.standalone))}
+            profile = state.profile()
+            if args.constraints:
+                profile['constraints'] = load(args.constraints)
+            return {"path": save(args.out, render_panel(catalog, profile, orders=orders, draft=draft, inline=not args.standalone, view=args.view, state_dir=state.path.parent))}
         if args.command == "order":
             if args.action in ("quote", "draft"):
                 request = load(args.request)

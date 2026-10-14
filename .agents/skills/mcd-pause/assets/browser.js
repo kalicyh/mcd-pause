@@ -17,6 +17,7 @@
   }
   let info = {}, cart = [], compared = null, cartQuote = null, draft = null, watchTimer = null, trackedOrder = null;
   let requestQueue = Promise.resolve(), priceTimer = null, priceVersion = 0, pricing = false, reviewing = false;
+  let orderRequest = null, orderVersion = 0, watchFailures = 0, nextOrderCheck = 0;
   const comparisonCache = new Map();
   const storageKey = 'mcpause-cart:' + JSON.stringify([data.context.storeCode, data.context.beCode, data.context.reservationDate]);
 
@@ -192,9 +193,31 @@
       byId('confirm-cancel').textContent='关闭';feedback('订单已创建，支付入口已保留在餐单下方。');
     } catch(error) {byId('confirm-feedback').textContent=error.message+'。请先查询订单，不要重复提交。';}
   });
-  function page(orders){byId('menu-page').hidden=orders;byId('orders-page').hidden=!orders;byId('menu-tab').className=orders?'':'primary';byId('orders-tab').className=orders?'primary':'';}
-  byId('menu-tab').addEventListener('click',()=>page(false));byId('orders-tab').addEventListener('click',()=>page(true));
-  const stopWatch=note=>{clearTimeout(watchTimer);watchTimer=null;byId('order-follow').checked=false;byId('order-watch-note').textContent=note||'';};
+  function page(orders){byId('menu-page').hidden=orders;byId('orders-page').hidden=!orders;byId('menu-tab').className=orders?'':'primary';byId('orders-tab').className=orders?'primary':'';try{sessionStorage.setItem('mcpause-page',orders?'orders':'menu');}catch{}}
+  byId('menu-tab').addEventListener('click',()=>page(false));
+  byId('orders-tab').addEventListener('click',()=>{page(true);if(!trackedOrder&&byId('order-id').value.trim())run(()=>queryOrder());});
+  const stopWatch=note=>{clearTimeout(watchTimer);watchTimer=null;nextOrderCheck=0;byId('order-watch-note').textContent=note||'';};
+  function scheduleWatch(note='自动更新 · 每 3 分钟'){
+    clearTimeout(watchTimer);nextOrderCheck=Date.now()+180000;
+    byId('order-watch-note').textContent=note;watchTimer=setTimeout(poll,180000);
+  }
+  function drawOrder(order){
+    byId('order-detail').hidden=false;byId('order-status').textContent=order.delivered?'已送达，吃饭啦！':order.label;
+    const checked=new Date(order.updated_at);
+    byId('order-checked').textContent=Number.isNaN(checked.getTime())?'':'更新于 '+checked.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    const stages=['awaiting_payment','accepted','ready','delivering','completed'],current=stages.indexOf(order.status);
+    document.querySelectorAll('[data-stage]').forEach(el=>{
+      const stage=el.dataset.stage;el.hidden=stage==='delivering'&&order.is_delivery===false;
+      if(stage==='completed')el.textContent=order.delivered?'已送达':'已完成';
+      if(stage===order.status)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
+      if(current>stages.indexOf(stage))el.setAttribute('data-passed','');else el.removeAttribute('data-passed');
+    });
+    byId('order-eta').hidden=Boolean(order.terminal);
+    byId('order-eta-label').textContent=order.is_delivery?'预计送达':'预计完成';
+    const eta=order.eta&&new Date(String(order.eta).replace(' ','T'));
+    byId('order-eta-value').textContent=!order.eta?'待确认':Number.isNaN(eta.getTime())?order.eta:eta.toLocaleString('zh-CN',{...(eta.toDateString()!==new Date().toDateString()?{month:'numeric',day:'numeric'}:{}),hour:'2-digit',minute:'2-digit'});
+    byId('order-pickup').hidden=!order.take_code;byId('order-pickup').textContent=order.take_code?'取餐码 '+order.take_code:'';
+  }
   function confetti(){
     const canvas=byId('delivery-confetti'),ctx=canvas.getContext('2d');if(!ctx)return;
     canvas.hidden=false;canvas.width=innerWidth;canvas.height=innerHeight;
@@ -202,32 +225,53 @@
     const bits=Array.from({length:90},()=>({x:Math.random()*canvas.width,y:-20-Math.random()*canvas.height/2,vx:(Math.random()-.5)*4,vy:2+Math.random()*3,r:Math.random()*6,color:colors[Math.floor(Math.random()*colors.length)]}));
     const start=performance.now();function frame(t){ctx.clearRect(0,0,canvas.width,canvas.height);for(const p of bits){p.x+=p.vx;p.y+=p.vy;p.vy+=.035;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r+=.05);ctx.fillStyle=p.color;ctx.fillRect(-3,-5,6,10);ctx.restore();}if(t-start<2600)requestAnimationFrame(frame);else{canvas.hidden=true;ctx.clearRect(0,0,canvas.width,canvas.height);}}requestAnimationFrame(frame);
   }
-  async function queryOrder(){
-    const id=byId('order-id').value.trim();if(!id)throw new Error('请先选择订单或输入订单号。');
-    if(trackedOrder&&trackedOrder!==id)stopWatch('已切换订单。');trackedOrder=id;
-    const result=await api('order',{order_id:id}),order=result.order;
-    if(!order?.label){if(result.stop)stopWatch(result.reason);throw new Error(result.reason||'订单状态待核实。');}
-    byId('order-detail').hidden=false;byId('order-status').textContent=order.delivered?'已送达，吃饭啦！':order.label;
-    byId('order-checked').textContent=(result.cached?'上次查询：':'查询于：')+new Date(order.updated_at).toLocaleString();
-    document.querySelectorAll('[data-stage]').forEach(el=>{if(el.dataset.stage===order.status)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
-    byId('order-eta').textContent=order.eta?'预计时间：'+order.eta:'预计送达时间待核实';byId('order-pickup').textContent=order.take_code?'取餐码：'+order.take_code:'';
-    if(result.celebration_eligible&&info.celebrate_delivery&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const claim=await api('celebrate',{order_id:id});if(claim.fire)confetti();}
-    clearTimeout(watchTimer);
-    if(result.stop)stopWatch(result.reason||'订单已结束，已停止检查。');
-    else if(byId('order-follow').checked){byId('order-watch-note').textContent='跟进中；关闭页面或停止点餐会话后结束。';watchTimer=setTimeout(poll,180000);}
+  async function queryOrder(id=byId('order-id').value.trim()){
+    if(!/^[A-Za-z0-9_-]{1,80}$/.test(id))throw new Error('请先选择订单或输入有效订单号。');
+    if(orderRequest?.id===id)return orderRequest.promise;
+    if(trackedOrder!==id){stopWatch();watchFailures=0;byId('order-detail').hidden=true;}
+    trackedOrder=id;const version=++orderVersion;clearTimeout(watchTimer);
+    byId('order-query').disabled=true;byId('order-watch-note').textContent='正在更新…';
+    const request={id,promise:null};orderRequest=request;
+    request.promise=(async()=>{
+      try{
+        const result=await api('order',{order_id:id}),order=result.order;
+        if(version!==orderVersion)return;
+        if(!order?.label){stopWatch(result.reason);throw new Error(result.reason||'订单状态待核实。');}
+        watchFailures=0;drawOrder(order);feedback('');
+        byId('order-picker').open=false;byId('order-picker-label').textContent='切换订单 · 尾号 '+id.slice(-6);
+        byId('recent-orders').replaceChildren();
+        try{sessionStorage.setItem('mcpause-tracked-order',id);}catch{}
+        if(result.stop||order.terminal)stopWatch(order.terminal?'':result.reason||'自动更新已结束');
+        else scheduleWatch();
+        if(result.celebration_eligible&&info.celebrate_delivery&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const claim=await api('celebrate',{order_id:id});if(claim.fire&&version===orderVersion)confetti();}
+      }catch(error){
+        if(version!==orderVersion)return;
+        watchFailures++;
+        if(watchFailures<3)scheduleWatch('更新失败，稍后自动重试');else stopWatch('暂时无法更新，请重新查询');
+        throw error;
+      }finally{if(orderRequest===request){orderRequest=null;byId('order-query').disabled=false;}}
+    })();return request.promise;
   }
-  async function poll(){if(document.hidden){watchTimer=setTimeout(poll,180000);return;}try{await queryOrder();}catch(error){feedback(error.message);stopWatch('查询失败，已停止自动检查。');}}
-  byId('order-query').addEventListener('click',()=>run(queryOrder));
-  byId('order-follow').addEventListener('change',()=>{if(byId('order-follow').checked)run(queryOrder);else stopWatch('已停止自动检查。');});
+  async function poll(){if(document.hidden){watchTimer=setTimeout(poll,180000);return;}try{await queryOrder(trackedOrder);}catch(error){feedback(error.message);}}
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&nextOrderCheck&&Date.now()>=nextOrderCheck){clearTimeout(watchTimer);poll();}});
+  byId('order-query').addEventListener('click',()=>run(()=>queryOrder()));
+  byId('order-id').addEventListener('keydown',event=>{if(event.key==='Enter')run(()=>queryOrder());});
   byId('order-list').addEventListener('click',()=>run(async()=>{
     const result=await api('orders'),host=byId('recent-orders');host.replaceChildren();
-    for(const order of result.orders){const row=node('div');row.className='row';row.append(node('span',(order.storeName||'麦当劳')+' · '+(order.createTime||'时间待核实')));const button=node('button','查看 '+order.orderId);button.type='button';button.addEventListener('click',()=>{stopWatch();byId('order-id').value=order.orderId;run(queryOrder);});row.append(button);host.append(row);}if(!result.orders.length)host.textContent='暂无可查询的订单。';
+    for(const order of result.orders){const row=node('div');row.className='row';row.append(node('span',(order.storeName||'麦当劳')+' · '+(order.createTime||'时间待核实')));const button=node('button','查看 · '+String(order.orderId).slice(-6));button.type='button';button.addEventListener('click',()=>{byId('order-id').value=order.orderId;run(()=>queryOrder());});row.append(button);host.append(row);}if(!result.orders.length)host.textContent='暂无可查询的订单。';
   }));
-  try{const saved=JSON.parse(sessionStorage.getItem(storageKey));if(Array.isArray(saved))cart=saved.filter(row=>row?.item&&data.cards.some(c=>c.code===row.item.productCode));}catch{}
-  if(!cart.length&&data.card_comparison?.selection.items)cart=data.card_comparison.selection.items.map(item=>({item:structuredClone(item),name:data.cards.find(c=>c.code===item.productCode)?.name||'已选餐品',summary:window.mcpauseShopping.description()}));
+  let restoredCart=false;
+  try{const saved=JSON.parse(sessionStorage.getItem(storageKey));if(Array.isArray(saved)){restoredCart=true;cart=saved.filter(row=>row?.item&&data.cards.some(c=>c.code===row.item.productCode));}}catch{}
+  if(!restoredCart){
+    if(data.initial_cart?.length)cart=structuredClone(data.initial_cart);
+    else if(data.card_comparison?.selection.items)cart=data.card_comparison.selection.items.map(item=>({item:structuredClone(item),name:data.cards.find(c=>c.code===item.productCode)?.name||'已选餐品',summary:window.mcpauseShopping.description()}));
+    saveCart();
+  }
   drawCart();byId('browser-nav').hidden=false;byId('cart-review').disabled=true;
   api('info').then(result=>{
     info=result;byId('cart-review').textContent=info.checkout_enabled?'去结算':'保存餐单';byId('session-label').textContent=info.checkout_enabled?'':'选餐与查询';
     showCreatedOrder(info.last_order);updateCheckout();refreshCartPricing();window.mcpauseShopping.start();
+    try{const saved=sessionStorage.getItem('mcpause-tracked-order');if(saved)byId('order-id').value=saved;if(sessionStorage.getItem('mcpause-page')==='orders')page(true);}catch{}
+    if(byId('order-id').value.trim())run(()=>queryOrder());
   }).catch(error=>feedback(error.message));
 })();

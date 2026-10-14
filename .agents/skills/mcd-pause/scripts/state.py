@@ -147,9 +147,9 @@ class State:
         payment = next((str(data[k]) for k in ("payStatusName", "payStatusDesc", "paymentStatus", "payStatus") if data.get(k) is not None), "未知")
         groups = {"awaiting_payment": {"待支付", "待付款", "等待支付"},
                   "accepted": {"已接单", "门店已接单", "商家已接单", "备餐中", "制作中"},
-                  "ready": {"待取餐", "可取餐", "请取餐"},
+                  "ready": {"待取餐", "可取餐", "请取餐", "配餐完成"},
                   "delivering": {"配送中", "正在配送"},
-                  "completed": {"已完成", "订单完成", "已送达"},
+                  "completed": {"已完成", "订单完成", "订单已完成", "已送达"},
                   "cancelled": {"已取消", "订单已取消", "已退款"}}
         status = next((k for k, values in groups.items() if label in values), "unknown")
         # query-order's official output schema, checked 2026-10-14. Other numeric fields stay unknown.
@@ -166,7 +166,7 @@ class State:
         delivery = data.get("deliveryInfo") if isinstance(data.get("deliveryInfo"), dict) else {}
         is_delivery = bool(delivery or str(data.get("orderType")) == "2" or old.get("is_delivery"))
         delivered = label == "已送达" or (raw_status == "6" and status == "completed" and is_delivery)
-        seen_active = old.get("seen_active", False) or status in {"awaiting_payment", "accepted", "delivering"}
+        seen_active = old.get("seen_active", False) or status in {"awaiting_payment", "accepted", "ready", "delivering"}
         terminal = status in {"completed", "cancelled"}
         order = {"order_id": order_id, "reference": hashlib.sha256(order_id.encode()).hexdigest()[:8],
                  "status": status, "label": label, "payment_label": payment, "paid": paid,

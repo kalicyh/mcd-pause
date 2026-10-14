@@ -110,12 +110,13 @@ def shopping_data(catalog, details, news=None, keyword=None, selected=None, quot
             "rendered_at": datetime.now(timezone.utc).isoformat()}
 
 
-def render_shop(catalog, details, standalone=False, browser_token=None, **options):
+def render_shop(catalog, details, standalone=False, browser_token=None, initial_cart=None, **options):
     config = shopping_data(catalog, details, **options)
     # The lightweight visualization host has a fixed image allowlist.
     config["images_enabled"] = standalone
     config["standalone"] = standalone
     config["browser_session"] = bool(standalone and browser_token)
+    config["initial_cart"] = initial_cart if config['browser_session'] else None
     encoded = json.dumps(config, ensure_ascii=False).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
     fragment = (ASSETS / "shopping.html").read_text().replace("__MCPAUSE_SHOP_DATA__", encoded)
     if standalone:

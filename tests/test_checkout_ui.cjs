@@ -18,8 +18,8 @@ function harness(){
     const food=items[0].quantity*3690,without={price:food+790,foodPrice:food,cardFee:0,deliveryPrice:600,packingPrice:190,tablewarePrice:null},withCard={...without,price:food+990,cardFee:990,deliveryPrice:0,packingPrice:0};
     return {comparison_id:'COMPARISON-'+items[0].quantity,quote:{price:without.price,items},comparison:{card:{name:'合成体验卡',fee_cents:990},without_card:without,with_card:withCard,net_saving_cents:-200,gross_saving_cents:790,repeat_saving_assumption_cents:790,quoted_at:'2026-10-14T09:00:00Z'},option_count:1};
   };
-  const context=vm.createContext({document:{getElementById:get,createElement:element,querySelectorAll:()=>[]},
-    window:{mcpauseShopping:{start(){},description:()=>['少冰']}},sessionStorage:{getItem:()=>JSON.stringify(cart),setItem(){}},
+  const context=vm.createContext({document:{getElementById:get,createElement:element,querySelectorAll:()=>[],addEventListener(){}},
+    window:{mcpauseShopping:{start(){},description:()=>['少冰']}},sessionStorage:{getItem:key=>key.startsWith('mcpause-cart:')?JSON.stringify(cart):null,setItem(){}},
     structuredClone,URL,Date,console,setTimeout:f=>{timers.set(++sequence,f);return sequence;},clearTimeout:id=>timers.delete(id),
     fetch:async(url,options)=>{
       const action=url.split('/').at(-1),payload=JSON.parse(options.body);calls.push({action,payload});let result;
