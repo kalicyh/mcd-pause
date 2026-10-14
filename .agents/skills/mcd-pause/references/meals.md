@@ -13,7 +13,7 @@
 
 查询附近门店时显式设置 `searchType=2`、`city`、`keyword`；`searchType=1` 查询的是收藏门店。创建新地址属于另外的明确操作，本脚本不自动创建。预约时将同一 `reservationDate` 贯穿菜单、详情、券、核价和下单。
 
-调用 `query-meals` 后，只从当前返回的商品编码生成候选。自动组合首版覆盖一份主食、可选一份小食、可选一杯饮料；每类最多取参考价较低的 40 项。它不是全菜单全套餐的最优价格证明。价格为 0、随单购会员卡、复杂套餐不进入自动组合。
+调用 `query-meals` 后，只从当前返回的商品编码生成候选。用户只说“四件套”等品类时，按界面流程在浏览器菜单前置匹配需求的候选，匹配的新品优先，后面保留完整分类菜单；用户点选和改配，不替其锁定最便宜的一套。营养自动组合首版覆盖一份主食、可选一份小食、可选一杯饮料；每类最多取参考价较低的 40 项。它不是全菜单全套餐的最优价格证明。价格为 0、随单购会员卡、复杂套餐不进入单品自动组合。
 
 对选中商品调用 `query-meal-detail` 核对规格、套餐 roundList 和特调。需要选规格的通用商品不能把名称直接映射到“大杯/中份”等营养值；有明确规格后才建立完整名称别名。修改配料没有营养依据时对应营养维持未知。复杂套餐可以由 Agent 展开并手动组装 API 请求，但不能套用自动单品计算的总营养。
 
@@ -29,6 +29,8 @@ python3 "$SKILL_DIR/scripts/mcpause.py" recommend --catalog work/catalog.json --
 上述目标只是命令示例，不是默认健康建议。按用户设定的目标计算。无法满足时解释缺口，给出调整选项；不要降低硬约束后仍宣称通过。游戏过关仅说明当前录入数据满足约束。
 
 优惠先查用户已持有的券，再用 `query-store-coupons` 核对当前门店/方式。对原价与最多三组相关用券候选调用 `calculate-price`，展示实际返回的总价；不从活动标语推算券后价，不默认为可叠加。领取优惠券是写操作，只有用户另有要求时通过原生 MCP 执行；CLI 通用接口不开放领券。
+
+用户想比较开卡时按 [开卡优惠](membership.md) 处理 `query-meals.withOrder`，分别试算不开卡和加购卡的同一餐单。不要将卡费当作餐品营养或默认加购；即使减免金额大，也须用含卡费实付比较，并标明回本假设。
 
 ## 一份确认单
 
@@ -80,9 +82,9 @@ python3 "$SKILL_DIR/scripts/mcpause.py" order observe --order-id REAL_ORDER_ID -
 python3 "$SKILL_DIR/scripts/mcpause.py" order watch --order-id REAL_ORDER_ID
 ```
 
-状态适配仅认识明确文字字段：orderStatusName/orderStatusDesc/statusName/statusDesc 等，以及 payStatusName/payStatusDesc/paymentStatus/payStatus。不猜数字状态码；未知状态展示原值并说明尚未映射。只显示真实返回的取餐码和预计时间，不计算虚构进度百分比。
+状态适配识别明确文字字段，并按 2026-10-14 query-order 官方 schema 映射 orderStatus：1 待支付、2 配餐中且已支付、4 配送中、6 已完成、7 已取消、8 已评价、10 餐厅确认配餐中。其他数字及未知状态保留原值，不猜测。只显示真实返回的取餐码和预计时间，不计算虚构进度百分比。
 
-开启庆祝后，首次明确“已支付”且“已接单/备餐中”才可执行 `order celebrate --order-id ...`。`fire=true` 时调用宿主 `fire_confetti` 一次。实际可识别的订单字段还需要用户真实订单联调；目前仅完成合成订单测试，不承诺每种状态都能自动识别。
+开启庆祝后，已跟进的外送订单确认送达时才可执行 `order celebrate --order-id ...`。`fire=true` 时调用宿主 `fire_confetti` 一次。历史完成订单首次查询、支付、备餐、取消和到店自取完成不庆祝。浏览器会话在页面内播放一次彩纸，减少动态效果时仅显示文字。状态映射依据官方 schema，真实送达仍待实际订单联调。
 
 持续跟进见 [定时任务](automations.md)。`changed=false` 时保持安静。订单终态、30 次成功检查、连续 3 次失败或两小时后停止对应临时任务。
 

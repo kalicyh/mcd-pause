@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://menu-img.mcd.cn; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>麦麦暂停键 · 选这一餐</title>
+  <style>
+    :root{color-scheme:light dark;background:light-dark(#f5f5f5,#121212)}
+    body{margin:0;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+    body>div{max-width:900px;margin:0 auto}
+    #mcpause-browser{--surface:light-dark(#fff,#1c1c1c);--ink:light-dark(#252525,#f6f6f6);--muted:light-dark(#666,#bcbcbc);--line:light-dark(#e9e9e9,#3c3c3c);--soft:light-dark(#f7f7f5,#262626);--result:light-dark(#862b12,#ffc6a0);color:var(--ink);font-size:14px;line-height:1.5}
+    #mcpause-browser *{box-sizing:border-box}
+    #mcpause-browser button,#mcpause-browser input,#mcpause-browser select{font:inherit;color:inherit}
+    #mcpause-browser button{cursor:pointer;min-height:44px;padding:10px 16px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+    #mcpause-browser button:disabled{opacity:.55;cursor:default}
+    #mcpause-browser button.primary{background:#ffbc0d;color:#28200d;border-color:#ffbc0d}
+    #mcpause-browser .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 0}
+    #mcpause-browser .block{background:var(--surface);border-radius:16px;padding:24px;margin:16px 0}
+    #mcpause-browser .row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+    #mcpause-browser .row>div{flex:1;min-width:160px}
+    #mcpause-browser .muted{color:var(--muted);font-size:12px}
+    #mcpause-browser input[type=text],#mcpause-browser input[type=number],#mcpause-browser select{max-width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+    #mcpause-browser input[type=number]{width:90px}
+    #mcpause-browser table{width:100%;border-collapse:collapse;margin:12px 0;font-variant-numeric:tabular-nums}
+    #mcpause-browser th,#mcpause-browser td{padding:10px 4px;border-bottom:1px solid var(--line);text-align:right}
+    #mcpause-browser th:first-child,#mcpause-browser td:first-child{text-align:left}
+    #mcpause-browser ol{display:flex;gap:14px;flex-wrap:wrap;padding:0;list-style:none}
+    #mcpause-browser li{color:var(--muted);padding:8px 12px;border-radius:8px;background:light-dark(#f4f4f4,#292929)}
+    #mcpause-browser li[aria-current=step]{color:#28200d;background:#ffbc0d}
+    #mcpause-browser dialog{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);width:540px;max-width:calc(100vw - 32px);max-height:90dvh;overflow:auto;padding:0}
+    #mcpause-browser dialog::backdrop{background:rgb(0 0 0/.72)}
+    #mcpause-browser [hidden]{display:none!important}
+    #mcpause-browser pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+    #mcpause-browser summary{cursor:pointer;padding:12px 0;min-height:44px;font-size:13px;color:var(--muted)}
+    #mcpause-browser :is(button,input,select,a,summary):focus-visible{outline:3px solid light-dark(#956000,#ffcf56);outline-offset:3px}
+    #mcpause-browser input[type=checkbox]{accent-color:#ffbc0d;width:18px;height:18px;flex:none}
+    #mcpause-browser h2{font-size:22px;margin:0 0 18px}
+    #mcpause-browser h3{font-size:16px;line-height:1.5;margin:0}
+    #mcpause-browser #cart-count{font-size:13px;font-weight:400;color:var(--muted);margin-left:6px}
+    #mcpause-browser .row.cart-item{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:16px;align-items:start}
+    #mcpause-browser .food-thumb{width:72px;height:72px;object-fit:contain;background:var(--soft);border-radius:10px}
+    #mcpause-browser .item-copy{min-width:0}
+    #mcpause-browser .item-copy>strong{font-size:16px;display:block}
+    #mcpause-browser .item-copy details{font-size:12px;color:var(--muted)}
+    #mcpause-browser .item-copy p{margin:0 0 10px}
+    #mcpause-browser .item-controls{display:flex;align-items:center;gap:8px;grid-column:2 / -1;justify-content:flex-end}
+    #mcpause-browser .item-controls label{font-size:12px;color:var(--muted)}
+    #mcpause-browser .item-controls input[type=number]{width:64px;margin-left:6px;min-height:44px}
+    #mcpause-browser .item-controls button,#mcpause-browser #cart-refresh{border:0;background:transparent;color:var(--muted);font-size:13px}
+    #mcpause-browser .offer-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:24px}
+    #mcpause-browser .offer-outcome{font-size:13px;font-weight:600;color:var(--result);white-space:nowrap}
+    #mcpause-browser .price-comparison{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 0;padding:16px 18px;background:var(--soft);border-radius:10px}
+    #mcpause-browser .price-comparison>div{display:grid;gap:3px}
+    #mcpause-browser .price-comparison>div+div{border-left:1px solid var(--line);padding-left:18px}
+    #mcpause-browser .price-comparison .price-label{font-size:12px;color:var(--muted)}
+    #mcpause-browser .price-comparison strong{font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
+    #mcpause-browser .price-comparison small{font-size:11px;min-height:16px;color:var(--muted)}
+    #mcpause-browser #card-choice{display:block;border-top:1px solid var(--line)}
+    #mcpause-browser #card-choice>label{display:flex;align-items:center;gap:10px;padding:12px 0;min-height:48px;cursor:pointer;font-size:13px}
+    #mcpause-browser .checkout-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--line);padding-top:20px;margin-top:8px}
+    #mcpause-browser .payable{margin:0;display:grid;gap:2px;font-variant-numeric:tabular-nums}
+    #mcpause-browser .payable .price-label{font-size:12px;font-weight:400;color:var(--muted)}
+    #mcpause-browser .payable strong{font-size:32px;line-height:1.2;letter-spacing:-.6px}
+    #mcpause-browser #cart-review{font-weight:650;padding:12px 24px;min-width:130px}
+    #mcpause-browser .confirm-head{display:flex;justify-content:space-between;align-items:center;padding:22px 24px 18px;border-bottom:1px solid var(--line)}
+    #mcpause-browser .confirm-head h2{font-size:20px;margin:0}
+    #mcpause-browser #confirm-cancel{color:var(--muted);background:transparent;border:0;font-size:13px;padding:8px}
+    #mcpause-browser #confirm-summary{padding:20px 24px 0}
+    #mcpause-browser .delivery-summary{display:grid;gap:4px;margin-bottom:18px}
+    #mcpause-browser .delivery-summary>strong{font-size:15px;line-height:1.6}
+    #mcpause-browser .delivery-summary>span{font-size:12px;color:var(--muted)}
+    #mcpause-browser .confirm-meal{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;padding:16px 0;border-top:1px solid var(--line)}
+    #mcpause-browser .confirm-meal img{width:64px;height:64px;object-fit:contain;background:var(--soft);border-radius:8px}
+    #mcpause-browser .confirm-meal h3{font-size:15px}
+    #mcpause-browser .confirm-meal .amount{font-size:13px;color:var(--muted)}
+    #mcpause-browser .meal-choices{grid-column:2 / -1;font-size:12px;color:var(--muted);line-height:1.8;margin:0}
+    #mcpause-browser .meal-mods{grid-column:2 / -1;font-size:12px;color:var(--muted)}
+    #mcpause-browser .meal-mods p{margin:0 0 6px}
+    #mcpause-browser .confirm-card{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:13px}
+    #mcpause-browser .confirm-fees{font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+    #mcpause-browser .confirm-fees p{display:flex;justify-content:space-between;margin:6px 0}
+    #mcpause-browser .confirm-footer{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:20px 24px 24px;background:var(--surface);position:sticky;bottom:0;border-top:1px solid var(--line);margin-top:12px}
+    #mcpause-browser #confirm-submit{font-weight:650;min-width:150px;padding:12px 20px}
+    #mcpause-browser #confirm-expiry{grid-column:1 / -1;font-size:11px;margin:0;color:var(--muted)}
+    #mcpause-browser #confirm-feedback:not(:empty){padding:0 24px 20px;font-size:13px}
+    #mcpause-browser a{color:light-dark(#8c270d,#ffbc0d);text-underline-offset:4px}
+    #mcpause-browser canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:100}
+    @media(max-width:520px){#mcpause-browser .bar{padding:12px 16px}#mcpause-browser .block{padding:18px 16px;border-radius:0}#mcpause-browser input{font-size:16px}}
+    @media(max-width:520px){body{padding:0}}
+    @media(min-width:680px){#mcpause-browser .item-controls{grid-column:3;grid-row:1}#mcpause-browser .row.cart-item{align-items:center}}
+    @media(max-width:520px){#mcpause-browser dialog{max-width:calc(100vw - 16px);max-height:94dvh}#mcpause-browser .confirm-head{padding:16px 18px}#mcpause-browser #confirm-summary{padding:16px 18px 0}#mcpause-browser .confirm-footer{padding:16px 18px}#mcpause-browser .payable strong{font-size:28px}#mcpause-browser .offer-head{align-items:flex-start}#mcpause-browser .offer-outcome{white-space:normal;text-align:right}#mcpause-browser .row.cart-item{gap:10px}#mcpause-browser .price-comparison{padding:14px}#mcpause-browser .price-comparison strong{font-size:22px}}
+  </style>
+</head>
+<body>
+<div id="mcpause-browser">
+  <nav class="bar" id="browser-nav" hidden aria-label="点餐与订单"><button type="button" id="menu-tab" class="primary">选餐</button><button type="button" id="orders-tab">订单进度</button><span class="muted" id="session-label"></span></nav>
+  <main id="menu-page">
+__MCPAUSE_SHOP_FRAGMENT__
+    <section id="cart" class="block" hidden aria-label="本次餐单">
+      <h2>你的餐单 <span id="cart-count"></span></h2>
+      <div id="cart-items"></div>
+      <section id="cart-card" hidden aria-label="整单开卡对比"></section>
+      <div id="card-choice" hidden><label><input id="buy-card" type="checkbox"><span id="card-choice-text"></span></label><p id="card-choice-note" class="muted" hidden></p></div>
+      <div class="checkout-footer"><p id="cart-price" class="payable" aria-live="polite"></p><button type="button" id="cart-review" class="primary">去结算</button></div>
+      <button type="button" id="cart-refresh" hidden>重试</button>
+    </section>
+    <section id="checkout-result" class="block" hidden aria-label="订单与支付"></section>
+  </main>
+  <section id="orders-page" class="block" hidden aria-label="订单进度">
+    <h2>我的订单</h2>
+    <div class="bar"><label>订单号 <input id="order-id" type="text" autocomplete="off"></label><button id="order-query" type="button" class="primary">查询进度</button><button id="order-list" type="button">选择最近订单</button></div>
+    <div id="recent-orders"></div>
+    <div id="order-detail" hidden>
+      <h3 id="order-status"></h3><p class="muted" id="order-checked"></p>
+      <ol aria-label="订单阶段"><li data-stage="awaiting_payment">待支付</li><li data-stage="accepted">备餐中</li><li data-stage="delivering">配送中</li><li data-stage="completed">已完成</li></ol>
+      <p id="order-eta"></p><p id="order-pickup"></p>
+      <p class="muted">当前接口不提供骑手位置或配送轨迹。</p>
+      <label><input id="order-follow" type="checkbox">页面打开时持续跟进，每 3 分钟检查一次</label>
+      <p id="order-watch-note" class="muted"></p>
+    </div>
+  </section>
+  <p id="browser-feedback" role="status" aria-live="polite"></p>
+  <dialog id="confirm-order" aria-labelledby="confirm-title"><header class="confirm-head"><h2 id="confirm-title">确认订单</h2><button id="confirm-cancel" type="button">返回修改</button></header><div id="confirm-summary"></div><div class="confirm-footer"><p id="confirm-price" class="payable"></p><button id="confirm-submit" type="button" class="primary">确认下单</button><p id="confirm-expiry"></p></div><div id="confirm-feedback" role="status"></div></dialog>
+  <canvas id="delivery-confetti" hidden aria-hidden="true"></canvas>
+</div>
+<script>__MCPAUSE_BROWSER_SCRIPT__</script>
+</body>
+</html>

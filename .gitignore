@@ -22,6 +22,7 @@ mcp-config*.json
 # Private meal/order state, MCP responses and generated previews
 .mcpause/
 work/
+.playwright-cli/
 *.sqlite
 *.sqlite-*
 *.sqlite3*

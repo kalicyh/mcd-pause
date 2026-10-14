@@ -1,4 +1,4 @@
-"""Local state for meal reminders, resume cards and observed orders."""
+"""Local state for meal reminders and observed orders."""
 import hashlib
 import json
 import math
@@ -133,23 +133,6 @@ class State:
         return {"action": "recommend" if consumed else "none", "meal": meal,
                 "at": local.isoformat(), "reason": "首次饭点检查" if consumed else "其他检查已处理"}
 
-    def save_checkpoint(self, card):
-        keys = ("task", "verified", "next_step")
-        if not isinstance(card, dict) or any(not isinstance(card.get(k), str) or not card[k].strip() or len(card[k]) > 2000 for k in keys):
-            raise ValueError("续写卡需要 task、verified、next_step 三段非空文本")
-        clean = {k: card[k].strip() for k in keys}
-        workspace = card.get("workspace", str(Path.cwd()))
-        if not isinstance(workspace, str) or not workspace.strip() or not Path(workspace).expanduser().is_absolute():
-            raise ValueError("续写卡 workspace 必须是工作目录的绝对路径")
-        clean["workspace"] = str(Path(workspace).expanduser().resolve())
-        if "thread_id" in card:
-            if not isinstance(card["thread_id"], str) or not card["thread_id"].strip() or len(card["thread_id"]) > 200:
-                raise ValueError("续写卡 thread_id 必须是有效文本")
-            clean["thread_id"] = card["thread_id"].strip()
-        clean["created_at"] = now_utc().isoformat()
-        self.set("checkpoint", clean)
-        return clean
-
     def observe(self, order_id, data, at=None):
         if not isinstance(data, dict):
             raise ValueError("订单响应结构未知")
@@ -169,19 +152,33 @@ class State:
                   "completed": {"已完成", "订单完成", "已送达"},
                   "cancelled": {"已取消", "订单已取消", "已退款"}}
         status = next((k for k, values in groups.items() if label in values), "unknown")
-        # Numeric enums are deliberately not guessed. Acceptance alone is not payment evidence.
+        # query-order's official output schema, checked 2026-10-14. Other numeric fields stay unknown.
+        numeric = {"1": ("awaiting_payment", "待支付"), "2": ("accepted", "配餐中（已支付）"),
+                   "4": ("delivering", "配送中"), "6": ("completed", "已完成"),
+                   "7": ("cancelled", "已取消"), "8": ("completed", "已评价"),
+                   "10": ("accepted", "餐厅确认配餐中")}
+        raw_status = str(data.get("orderStatus", ""))
+        if status == "unknown" and label == raw_status and raw_status in numeric:
+            status, label = numeric[raw_status]
         paid = payment in {"已支付", "支付成功", "已付款", "PAID", "paid"}
+        if raw_status == "2" and payment == "未知":
+            paid, payment = True, "已支付"
+        delivery = data.get("deliveryInfo") if isinstance(data.get("deliveryInfo"), dict) else {}
+        is_delivery = bool(delivery or str(data.get("orderType")) == "2" or old.get("is_delivery"))
+        delivered = label == "已送达" or (raw_status == "6" and status == "completed" and is_delivery)
+        seen_active = old.get("seen_active", False) or status in {"awaiting_payment", "accepted", "delivering"}
         terminal = status in {"completed", "cancelled"}
         order = {"order_id": order_id, "reference": hashlib.sha256(order_id.encode()).hexdigest()[:8],
                  "status": status, "label": label, "payment_label": payment, "paid": paid,
                  "terminal": terminal, "updated_at": timestamp.isoformat(),
+                 "is_delivery": is_delivery, "delivered": delivered, "seen_active": seen_active,
                  "started_at": old.get("started_at", timestamp.isoformat()),
                  "poll_count": old.get("poll_count", 0) + 1, "errors": 0,
                  "take_code": str(data.get("takeCode") or data.get("pickupCode") or ""),
-                 "eta": str(data.get("estimatedArrivalTime") or data.get("estimatedFinishTime") or "")}
+                 "eta": str(delivery.get("expectDeliveryTime") or data.get("estimatedArrivalTime") or data.get("estimatedFinishTime") or "")}
         self.set(key, order)
         changed = any(old.get(k) != order.get(k) for k in ("label", "payment_label", "take_code", "eta"))
-        eligible = bool(self.profile()["celebrate_enabled"] and paid and status == "accepted"
+        eligible = bool(self.profile()["celebrate_enabled"] and delivered and seen_active
                         and not self.get("celebration:" + order_id))
         return {"order": order, "changed": changed, "celebration_eligible": eligible}
 
@@ -209,7 +206,7 @@ class State:
     def claim_celebration(self, order_id, at=None):
         order = self.get("order:" + order_id, {})
         recent = timedelta(0) <= aware(at) - aware(order["updated_at"]) < timedelta(minutes=5) if order.get("updated_at") else False
-        if not self.profile()["celebrate_enabled"] or not order.get("paid") or order.get("status") != "accepted" or not recent:
+        if not self.profile()["celebrate_enabled"] or not order.get("delivered") or not order.get("seen_active") or not recent:
             return {"fire": False}
         return {"fire": self.once("celebration:" + order_id, {"attempted_at": aware(at).isoformat()}),
                 "note": "仅宿主礼炮工具返回 fired=true 时才能说已播放"}

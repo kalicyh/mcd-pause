@@ -93,7 +93,7 @@ def catalog_from_menu(raw, rows, context, aliases=None):
     tags = {}
     for category in data.get("categories", []):
         for entry in category.get("meals", []):
-            tags.setdefault(str(entry.get("code")), set()).update(entry.get("tags", []))
+            tags.setdefault(str(entry.get("code")), set()).update(entry.get("tags") or [])
     entries = meals.items() if isinstance(meals, dict) else ((m.get("code"), m) for m in meals)
     foods = []
     for key, entry in entries:
@@ -101,7 +101,7 @@ def catalog_from_menu(raw, rows, context, aliases=None):
             continue
         name = entry.get("name") or entry.get("productName")
         code = entry.get("code") or key
-        if not name or not code or entry.get("canWithOrder"):
+        if not name or not code:
             continue
         price = entry.get("currentPrice")
         try:
@@ -110,11 +110,20 @@ def catalog_from_menu(raw, rows, context, aliases=None):
             reference = None
         kind = "combo" if "套餐" in tags.get(str(code), set()) or "麦金卡" in tags.get(str(code), set()) else classify(name)
         foods.append({"id": str(code), "name": name, "kind": kind,
+                      "image": entry.get("image"),
+                      "can_with_order": bool(entry.get("canWithOrder")),
+                      "tags": sorted(tags.get(str(code), set())),
                       "reference_cents": reference,
                       "nutrition": match_nutrition(name, rows, aliases)})
     if not foods:
         raise ValueError("菜单未包含可识别餐品")
-    return {"mode": "live", "source": "query-meals", "context": context, "foods": foods}
+    codes = {f["id"] for f in foods}
+    categories = [{"id": "menu-" + str(i), "name": str(c.get("name") or "其他餐品").replace("\n", " "),
+                   "codes": list(dict.fromkeys(str(m.get("code")) for m in c.get("meals", [])
+                                               if str(m.get("code")) in codes))}
+                  for i, c in enumerate(data.get("categories", []))]
+    return {"mode": "live", "source": "query-meals", "context": context, "foods": foods,
+            "categories": [c for c in categories if c["codes"]]}
 
 
 def totals(foods):
@@ -159,6 +168,7 @@ def recommend(catalog, constraints, excluded=None):
                 raise ValueError("营养目标必须是非负数")
             constraints[key] = parsed
     foods = [f for f in catalog["foods"] if type(f.get("reference_cents")) is int and f["reference_cents"] > 0
+             and not f.get("can_with_order")
              and f.get("kind") in ("main", "side", "drink")
              and not any(normalize_name(s) in normalize_name(f["name"]) for s in (excluded or []))]
     groups = {kind: sorted([f for f in foods if f.get("kind") == kind], key=lambda f: (f["reference_cents"], f["id"]))[:40]

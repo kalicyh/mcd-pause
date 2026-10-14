@@ -62,6 +62,20 @@ def check_takeway(request, quote):
             raise ValueError("所选取餐方式不在本次核价返回的 takeWayList 中")
 
 
+def card_terms(request, quote):
+    if not request.get("withOrder"):
+        return None
+    food_codes = {item["productCode"] for item in request["items"]}
+    cards = [p for p in quote.get("productList", [])
+             if p.get("productCode") not in food_codes and "卡" in p.get("productName", "")]
+    if len(cards) != 1 or cards[0].get("quantity") != 1:
+        raise ValueError("无法核实本次加购的权益卡，请重新比较")
+    card = cards[0]
+    if not card.get("productCode") or type(card.get("subtotal")) is not int or card["subtotal"] < 0:
+        raise ValueError("本次卡费待核实，请重新比较")
+    return {k: card[k] for k in ("productCode", "productName", "quantity", "subtotal")}
+
+
 def make_draft(state, request, quote_response, amount_field, summary, at=None, budget_cents=None):
     validate_request(request)
     if not isinstance(summary, str) or not summary.strip():
@@ -85,6 +99,8 @@ def make_draft(state, request, quote_response, amount_field, summary, at=None, b
              "intent": intent, "total_cents": amount, "amount_field": amount_field,
              "summary": summary, "created_at": stamp.isoformat(),
              "expires_at": (stamp + timedelta(minutes=5)).isoformat()}
+    if request.get("withOrder"):
+        draft["card_terms"] = card_terms(request, quote)
     state.set("draft:" + draft["id"], draft)
     return draft
 
@@ -109,6 +125,7 @@ def authorize(state, draft_id, confirmation, fresh_response, at=None):
         fresh = unwrap(fresh_response)
         check_takeway(draft["request"], fresh)
         new_amount = amount_at(fresh, draft["amount_field"])
+        fresh_card = card_terms(draft["request"], fresh)
     except Exception:
         state.set(key, {**locked, "status": "quote_failed"})
         raise
@@ -116,6 +133,10 @@ def authorize(state, draft_id, confirmation, fresh_response, at=None):
         state.set(key, {**locked, "status": "price_changed", "latest_cents": new_amount})
         return {"created": False, "reason": "price_changed", "total_cents": new_amount,
                 "next": "展示新价格，重新生成确认单并等待用户确认"}
+    if fresh_card != draft.get("card_terms"):
+        state.set(key, {**locked, "status": "card_changed"})
+        return {"created": False, "reason": "card_changed", "total_cents": new_amount,
+                "next": "卡种或卡费已变化，请重新比较并确认"}
     intent_key = "submission:" + draft["intent"]
     lease = {"draft_id": draft_id}
     old_lease = state.get(intent_key)

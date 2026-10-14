@@ -11,7 +11,9 @@ from mcp_client import Client, READ_TOOLS, unwrap
 from nutrition import catalog_from_menu, nutrition_rows, recommend, cents
 from orders import make_draft, submit, validate_request, authorize, complete
 from state import State, now_utc
-from views import ASSETS, render_panel
+from views import ASSETS, render_panel, render_reminder
+from shopping import render_shop
+from membership import with_order_options, comparison_for_view
 
 
 def load(path):
@@ -30,13 +32,17 @@ def save(path, value):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="麦麦暂停键：饭点、选餐、续写卡。默认不会创建定时任务或下单。")
+    parser = argparse.ArgumentParser(description="麦麦暂停键：饭点提醒、选餐和订单跟进。默认不会创建定时任务或下单。")
     parser.add_argument("--state-dir", help="本地状态目录；默认为用户 .local/share/mcd-pause")
     parser.add_argument("--token-stdin", action="store_true", help="联网命令使用不回显输入读取凭据，不保存")
     sub = parser.add_subparsers(dest="command", required=True)
     demo = sub.add_parser("demo", help="生成完全离线的演示界面")
     demo.add_argument("--out", required=True)
     demo.add_argument("--inline", action="store_true")
+    reminder_view = sub.add_parser('render-reminder', help='聊天内仅显示用餐、延后和已安排三个入口')
+    reminder_view.add_argument('--meal', choices=['breakfast', 'lunch', 'dinner'], required=True)
+    reminder_view.add_argument('--intent', help='用户本次想吃的品类')
+    reminder_view.add_argument('--out', required=True)
     profile = sub.add_parser("profile", help="查看或更新本地偏好；不会创建提醒")
     profile.add_argument("--file")
     sub.add_parser("doctor", help="只读联调：工具清单、服务器时间、营养表")
@@ -62,14 +68,32 @@ def main(argv=None):
     panel.add_argument("--catalog", required=True)
     panel.add_argument("--out", required=True)
     panel.add_argument("--standalone", action="store_true")
+    shop = sub.add_parser("render-shop", help="生成聊天内推荐与改配页面")
+    for name in ("catalog", "details", "out"):
+        shop.add_argument("--" + name, required=True)
+    shop.add_argument("--new-products", help="从当前官方活动人工核实的新品证据，按商品编码索引")
+    shop.add_argument("--keyword", help="本次想吃的品类置顶，例如四件套；保留完整菜单")
+    shop.add_argument("--selected", help="保留用户当前选择的商品编码")
+    shop.add_argument("--quote", help="上次核价响应，仅用于标明配送和打包参考费用")
+    shop.add_argument("--card-comparison", help="不开卡与开卡的同餐单核价证据 JSON；只展示比较，不开卡")
+    shop.add_argument("--standalone", action="store_true", help="用户要求浏览器预览时生成独立图文版")
+    browser = sub.add_parser('prepare-browser', help='准备临时浏览器会话数据，不启动服务或下单')
+    for name in ('catalog', 'details', 'out'):
+        browser.add_argument('--' + name, required=True)
+    for name in ('new-products', 'keyword', 'selected', 'quote', 'card-comparison', 'checkout'):
+        browser.add_argument('--' + name)
+    browser.add_argument('--celebrate-delivery', action='store_true', help='用户要求后才启用送达庆祝')
+    cards = sub.add_parser("card-options", help="从真实菜单提取随单购卡参数；不推测卡费或开卡")
+    cards.add_argument("--menu", required=True)
+    cards.add_argument("--out")
+    comparison = sub.add_parser("compare-card", help="比较两份同餐单报价，计算卡费、净省与回本假设")
+    comparison.add_argument("--evidence", required=True)
+    comparison.add_argument("--out")
     reminder = sub.add_parser("reminder", help="饭点检查与去重；调度由 Codex 执行")
     reminder.add_argument("action", choices=["tick", "snooze", "done"])
     reminder.add_argument("--meal", choices=["breakfast", "lunch", "dinner"], required=True)
     reminder.add_argument("--minutes", type=int, default=20)
     reminder.add_argument("--at", help="仅离线场景测试用，带时区的 ISO 时间")
-    checkpoint = sub.add_parser("checkpoint", help="保存或读取三行续写卡")
-    checkpoint.add_argument("action", choices=["save", "show"])
-    checkpoint.add_argument("--file")
     order = sub.add_parser("order", help="确认单、受控下单与订单查询")
     actions = order.add_subparsers(dest="action", required=True)
     for action in ("quote", "draft"):
@@ -117,6 +141,19 @@ def main(argv=None):
     # Pure transformations must not create user state directories.
     if args.command == "demo":
         return {"path": save(args.out, render_panel(load(ASSETS / "demo.json"), inline=args.inline)), "mode": "demo"}
+    if args.command == 'render-reminder':
+        return {'path': save(args.out, render_reminder(args.meal, args.intent))}
+    if args.command == 'prepare-browser':
+        config = {'catalog': load(args.catalog), 'details': load(args.details),
+                  'keyword': args.keyword, 'selected': args.selected,
+                  'celebrate_delivery': args.celebrate_delivery}
+        for name, attribute in (('news', 'new_products'), ('quote', 'quote'), ('card_comparison', 'card_comparison'), ('checkout', 'checkout')):
+            path = getattr(args, attribute)
+            if path:
+                config[name] = load(path)
+        if config['catalog'].get('mode') != 'live':
+            raise ValueError('浏览器会话需要真实菜单，演示请使用 demo')
+        return {'path': save(args.out, config)}
     if args.command == "doctor":
         connection = client()
         available = connection.rpc("tools/list", {}).get("tools", [])
@@ -141,6 +178,20 @@ def main(argv=None):
         constraints = {"budget_cents": cents(args.budget), "max_kcal": args.max_kcal,
                        "min_protein": args.min_protein, "max_sodium": args.max_sodium}
         return recommend(load(args.catalog), constraints, args.exclude)
+    if args.command == "card-options":
+        result = with_order_options(load(args.menu))
+        return {"path": save(args.out, result), "options": len(result)} if args.out else result
+    if args.command == "compare-card":
+        result = comparison_for_view(load(args.evidence))
+        return {"path": save(args.out, result)} if args.out else result
+
+    if args.command == "render-shop":
+        options = dict(news=load(args.new_products) if args.new_products else None,
+                       keyword=args.keyword, selected=args.selected,
+                       quote=load(args.quote) if args.quote else None,
+                       card_comparison=load(args.card_comparison) if args.card_comparison else None)
+        return {"path": save(args.out, render_shop(load(args.catalog), load(args.details),
+                                                 standalone=args.standalone, **options))}
 
     state = State(args.state_dir)
     try:
@@ -148,12 +199,6 @@ def main(argv=None):
             return state.configure(load(args.file)) if args.file else state.profile()
         if args.command == "reminder":
             return state.reminder(args.meal, args.at, args.action, args.minutes)
-        if args.command == "checkpoint":
-            if args.action == "save":
-                if not args.file:
-                    raise ValueError("保存续写卡需要 --file")
-                return state.save_checkpoint(load(args.file))
-            return state.get("checkpoint", {"note": "还没有续写卡；可根据当前聊天生成"})
         if args.command == "render":
             catalog = load(args.catalog)
             context = catalog.get("context", {})
@@ -162,7 +207,7 @@ def main(argv=None):
             drafts = [d for d in drafts if all(d["request"].get(k) == context[k]
                       for k in ("storeCode", "beType", "orderType", "beCode", "reservationDate") if k in context)]
             draft = max(drafts, key=lambda d: d["created_at"]) if drafts else None
-            return {"path": save(args.out, render_panel(catalog, state.profile(), state.get("checkpoint"), orders, draft, inline=not args.standalone))}
+            return {"path": save(args.out, render_panel(catalog, state.profile(), orders=orders, draft=draft, inline=not args.standalone))}
         if args.command == "order":
             if args.action in ("quote", "draft"):
                 request = load(args.request)

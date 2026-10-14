@@ -1,7 +1,7 @@
 interface:
   display_name: "麦麦暂停键 · McPause"
-  short_description: "在 Codex 中暂停工作、安排一餐，再接回思路的智能用餐助手"
-  default_prompt: "使用 $mcd-pause 帮我安排这一餐，并记下回来后继续工作的第一步。"
+  short_description: "聊天提醒，浏览器图文选餐、套餐调整、开卡优惠对比和订单跟进，送达后庆祝"
+  default_prompt: "使用 $mcd-pause 帮我挑选这一餐，并核对当前门店的实际价格。"
 dependencies:
   tools:
     - type: "mcp"

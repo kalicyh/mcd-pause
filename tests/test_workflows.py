@@ -142,7 +142,7 @@ class NutritionTests(unittest.TestCase):
         self.catalog["foods"] = [self.catalog["foods"][-1]]
         self.assertFalse(recommend(self.catalog, {"budget_cents": 3000, "max_kcal": 900})["options"])
 
-    def test_catalog_excludes_addons_and_unclassified_merchandise(self):
+    def test_full_catalog_keeps_addons_but_nutrition_recommendations_exclude_them(self):
         menu = {"categories": [{"meals": [{"code": "2", "tags": ["套餐"]}]}], "meals": {
             "1": {"name": "鸡腿堡", "currentPrice": "22.50"},
             "2": {"name": "超值双堡", "currentPrice": "12.00"},
@@ -151,7 +151,7 @@ class NutritionTests(unittest.TestCase):
             "5": {"name": "零价薯条", "currentPrice": "0"}}}
         catalog = catalog_from_menu(result(menu), [], {"storeCode": "1000000"})
         kinds = {f["id"]: f["kind"] for f in catalog["foods"]}
-        self.assertEqual(kinds, {"1": "main", "2": "combo", "4": "other", "5": "side"})
+        self.assertEqual(kinds, {"1": "main", "2": "combo", "3": "other", "4": "other", "5": "side"})
         options = recommend(catalog, {"budget_cents": 3000})["options"]
         self.assertEqual([[f["id"] for f in o["foods"]] for o in options], [["1"]])
 
@@ -198,15 +198,6 @@ class StateTests(TemporaryState):
         with self.assertRaises(ValueError):
             self.state.reminder("lunch", "2026-10-14T11:40:00")
 
-    def test_resume_card_retains_workspace_and_thread_only(self):
-        card = self.state.save_checkpoint({"task": "修复登录", "verified": "已重现", "next_step": "核对回调",
-                                           "workspace": self.tmp.name, "thread_id": "test-thread", "irrelevant": "ignored"})
-        self.assertEqual(card["workspace"], str(Path(self.tmp.name).resolve()))
-        self.assertEqual(self.state.get("checkpoint")["thread_id"], "test-thread")
-        self.assertNotIn("irrelevant", card)
-        with self.assertRaises(ValueError):
-            self.state.save_checkpoint({"task": "x", "verified": "x", "next_step": "x", "workspace": "relative"})
-
     def test_unknown_status_and_acceptance_do_not_imply_paid(self):
         self.state.configure({"celebrate_enabled": True})
         response = self.state.observe("A", {"orderStatus": 40, "payStatus": 1}, NOW)
@@ -216,17 +207,35 @@ class StateTests(TemporaryState):
         self.state.observe("A", {"orderStatusName": "已接单"}, NOW)
         self.assertFalse(self.state.claim_celebration("A", NOW)["fire"])
 
-    def test_celebration_requires_enabled_recent_payment_and_once(self):
+    def test_celebration_requires_delivery_transition_enabled_recent_and_once(self):
         data = {"orderStatusName": "备餐中", "payStatusName": "已支付"}
         self.state.observe("A", data, NOW)
         self.assertFalse(self.state.claim_celebration("A", NOW)["fire"])
         self.state.configure({"celebrate_enabled": True})
+        self.assertFalse(self.state.claim_celebration("A", NOW)["fire"])
+        self.state.observe('A', {'orderStatusName': '已送达'}, NOW)
         self.assertFalse(self.state.claim_celebration("A", NOW + timedelta(minutes=6))["fire"])
         self.assertFalse(self.state.claim_celebration("A", NOW - timedelta(seconds=1))["fire"])
         self.assertTrue(self.state.claim_celebration("A", NOW)["fire"])
         other = State(self.tmp.name)
         self.addCleanup(other.db.close)
         self.assertFalse(other.claim_celebration("A", NOW)["fire"])
+
+    def test_official_numeric_delivery_and_historical_orders(self):
+        self.state.configure({'celebrate_enabled': True})
+        old = self.state.observe('OLD', {'orderStatus': '6', 'orderType': '2'}, NOW)
+        self.assertTrue(old['order']['delivered'])
+        self.assertFalse(old['celebration_eligible'])
+        self.assertFalse(self.state.claim_celebration('OLD', NOW)['fire'])
+        accepted = self.state.observe('NEW', {'orderStatus': '2', 'orderType': '2'}, NOW)
+        self.assertTrue(accepted['order']['paid'])
+        self.assertFalse(accepted['celebration_eligible'])
+        delivered = self.state.observe('NEW', {'orderStatus': '6', 'deliveryInfo': {'expectDeliveryTime': '合成预计时间'}}, NOW)
+        self.assertTrue(delivered['celebration_eligible'])
+        self.assertEqual(delivered['order']['eta'], '合成预计时间')
+        self.state.observe('PICKUP', {'orderStatus': '4'}, NOW)
+        pickup = self.state.observe('PICKUP', {'orderStatus': '6', 'orderType': '1'}, NOW)
+        self.assertFalse(pickup['order']['delivered'])
 
     def test_observation_change_identity_and_no_fake_eta(self):
         data = {"orderId": "A", "orderStatusName": "已接单", "payStatusName": "已支付"}

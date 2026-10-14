@@ -7,7 +7,14 @@ from nutrition import normalize_name
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
 
-def render_panel(catalog, profile=None, checkpoint=None, orders=None, draft=None, inline=True):
+def render_reminder(meal, intent=None):
+    names = {'breakfast': '早餐', 'lunch': '午餐', 'dinner': '晚餐'}
+    config = {'meal': names[meal], 'intent': intent}
+    encoded = json.dumps(config, ensure_ascii=False).replace('&', '\\u0026').replace('<', '\\u003c').replace('>', '\\u003e')
+    return (ASSETS / 'reminder.html').read_text().replace('__MCPAUSE_REMINDER_DATA__', encoded)
+
+
+def render_panel(catalog, profile=None, orders=None, draft=None, inline=True):
     demo = catalog.get("mode") == "demo"
     excluded = (profile or {}).get("excluded_names", [])
     if excluded and not demo:
@@ -16,14 +23,12 @@ def render_panel(catalog, profile=None, checkpoint=None, orders=None, draft=None
     config = {
         "catalog": catalog, "mode": "demo" if demo else "live",
         "constraints": (profile or {}).get("constraints", {"budget_cents": 3000}),
-        "checkpoint": checkpoint,
         "orders": orders or [],
         "draft": ({k: draft[k] for k in ("id", "summary", "total_cents", "expires_at", "status")} if draft else None),
         "rendered_at": datetime.now(timezone.utc).isoformat(),
     }
     if demo:
         config["constraints"] = {"budget_cents": 3000, "max_kcal": 650, "min_protein": 30}
-        config["checkpoint"] = {"task": "示例：修复登录后页面跳转", "verified": "示例：已定位到回调参数处理", "next_step": "示例：补充失败回调的处理分支"}
         config["draft"] = None
         config["orders"] = []
     # Script text is inert JSON; escape HTML delimiters to prevent early </script> termination.

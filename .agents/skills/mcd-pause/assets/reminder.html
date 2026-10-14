@@ -1,0 +1,27 @@
+<div id="mcpause-reminder">
+  <p data-message></p>
+  <div class="viz-row">
+    <button class="btn btn-primary" type="button" data-action="eat">开始点餐</button>
+    <button class="btn" type="button" data-action="later">20 分钟后提醒</button>
+    <button class="btn btn-ghost" type="button" data-action="done">这餐已安排</button>
+  </div>
+  <p class="text-small text-muted" data-status aria-live="polite"></p>
+  <script type="application/json" id="mcpause-reminder-data">__MCPAUSE_REMINDER_DATA__</script>
+  <script>
+  (()=>{
+    const root=document.getElementById('mcpause-reminder'),data=JSON.parse(root.querySelector('#mcpause-reminder-data').textContent),status=root.querySelector('[data-status]');
+    root.querySelector('[data-message]').textContent=data.intent?'想吃'+data.intent+'？打开菜单选一餐。':'到饭点了，暂停一下，安排一餐。';
+    const messages={eat:'使用 $mcd-pause。我现在要点餐'+(data.intent?'，想吃'+data.intent:'')+'。请打开浏览器点餐页，想吃的放在前面，后面保留完整菜单。',later:'使用 $mcd-pause。请把这次'+data.meal+'提醒延后 20 分钟。',done:'使用 $mcd-pause。这次'+data.meal+'已经安排好了，停止本餐提醒。'};
+    function restore(state){if(state?.privateContent?.meal===data.meal)status.textContent=state.privateContent.status||'';}
+    for(const button of root.querySelectorAll('[data-action]'))button.addEventListener('click',async()=>{
+      root.querySelectorAll('button').forEach(b=>b.disabled=true);
+      try{if(typeof window.openai?.sendFollowUpMessage!=='function'){status.textContent='请在聊天中说：'+messages[button.dataset.action];return;}
+        await window.openai.sendFollowUpMessage({prompt:messages[button.dataset.action],title:button.textContent});
+        status.textContent='已收到，正在处理。';
+        if(typeof window.openai?.setWidgetState==='function')Promise.resolve(window.openai.setWidgetState({modelContent:{meal:data.meal,action:button.dataset.action,intent:data.intent},privateContent:{meal:data.meal,status:status.textContent}})).catch(()=>{});
+      }catch{status.textContent='操作未完成，可以在聊天中继续。';}finally{root.querySelectorAll('button').forEach(b=>b.disabled=false);}
+    });
+    restore(window.openai?.widgetState);window.addEventListener('openai:set_globals',e=>restore(e.detail?.globals?.widgetState));
+  })();
+  </script>
+</div>

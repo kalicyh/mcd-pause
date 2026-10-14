@@ -1,0 +1,597 @@
+<div id="mcpause-shop">
+  <style>
+    #mcpause-shop{--mp-bg:light-dark(#fff,#1c1c1c);--mp-panel:light-dark(#f7f7f7,#292929);--mp-ink:light-dark(#252525,#f6f6f6);--mp-sub:light-dark(#6b6b6b,#bcbcbc);--mp-line:light-dark(#e9e9e9,#3c3c3c);--mp-yellow:light-dark(#ffbc0d,#ffbc0d);--mp-on-yellow:light-dark(#28200d,#28200d);--mp-warm:light-dark(#fff8e4,#30291c);--mp-red:light-dark(#ae271e,#ff9c91);color:var(--mp-ink);background:var(--mp-bg);border-radius:20px;overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:14px;line-height:1.5}
+    #mcpause-shop *{box-sizing:border-box}
+    #mcpause-shop h2,#mcpause-shop h3,#mcpause-shop h4,#mcpause-shop p,#mcpause-shop figure{margin:0}
+    #mcpause-shop button,#mcpause-shop input,#mcpause-shop textarea{font:inherit;color:inherit}
+    #mcpause-shop button{cursor:pointer}
+    #mcpause-shop button:disabled{cursor:default;opacity:.55}
+    #mcpause-shop .mp-header{padding:24px 24px 20px;border-bottom:1px solid var(--mp-line)}
+    #mcpause-shop .mp-brand{font-size:22px;font-weight:700;letter-spacing:-.5px;padding-right:90px}
+    #mcpause-shop[data-standalone] .mp-brand{padding-right:0}
+    #mcpause-shop .mp-context{margin-top:8px;color:var(--mp-sub);font-size:12px}
+    #mcpause-shop .mp-delivery{color:var(--mp-ink);margin-top:4px}
+    #mcpause-shop .mp-menu-layout{display:grid;grid-template-columns:98px minmax(0,1fr)}
+    #mcpause-shop .mp-categories{display:flex;flex-direction:column;gap:4px;padding:22px 8px;background:var(--mp-panel);align-self:start}
+    #mcpause-shop .mp-category{min-height:58px;border:0;border-radius:8px;background:transparent;padding:12px 6px;font-weight:500;position:relative}
+    #mcpause-shop .mp-category[aria-pressed=true]{background:var(--mp-bg);font-weight:700}
+    #mcpause-shop .mp-category[aria-pressed=true]:before{content:"";position:absolute;left:-8px;top:18px;bottom:18px;width:4px;border-radius:2px;background:var(--mp-yellow)}
+    #mcpause-shop .mp-menu-content{min-width:0;padding:22px}
+    #mcpause-shop .mp-section-heading{font-size:18px;font-weight:700}
+    #mcpause-shop .mp-caption{color:var(--mp-sub);font-size:12px}
+    #mcpause-shop .mp-menu-caption{margin:5px 0 16px}
+    #mcpause-shop .mp-meals{display:grid;gap:12px}
+    #mcpause-shop .mp-menu-group{margin-bottom:28px;scroll-margin-top:16px}
+    #mcpause-shop .mp-menu-group h4{font-size:17px;margin-bottom:12px}
+    #mcpause-shop .mp-meal{display:flex;gap:16px;align-items:center;width:100%;min-width:0;padding:16px;border:1px solid var(--mp-line);border-radius:14px;background:var(--mp-bg);text-align:left}
+    #mcpause-shop .mp-meal[data-new]{background:var(--mp-warm);border-color:var(--mp-warm)}
+    #mcpause-shop .mp-meal[aria-pressed=true]{border-color:var(--mp-yellow);box-shadow:inset 0 0 0 1px var(--mp-yellow)}
+    #mcpause-shop .mp-meal-photo{display:flex;align-items:center;justify-content:center;flex:0 0 148px;min-width:0}
+    #mcpause-shop .mp-meal-photo img{display:block;width:148px;height:140px;object-fit:contain}
+    #mcpause-shop .mp-meal-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+    #mcpause-shop .mp-meal-name{font-size:18px;font-weight:700;line-height:1.4}
+    #mcpause-shop .mp-badges{display:flex;gap:6px;flex-wrap:wrap}
+    #mcpause-shop .mp-badge{display:inline-block;align-self:flex-start;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;color:var(--mp-on-yellow);background:var(--mp-yellow)}
+    #mcpause-shop .mp-meal-description{font-size:12px;color:var(--mp-sub)}
+    #mcpause-shop .mp-meal-bottom{display:flex;gap:10px;justify-content:space-between;align-items:end;margin-top:5px;flex-wrap:wrap}
+    #mcpause-shop .mp-price{font-size:24px;font-weight:750;color:var(--mp-red);font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+    #mcpause-shop .mp-pick{padding:6px 12px;border-radius:18px;background:var(--mp-yellow);color:var(--mp-on-yellow);font-size:12px;font-weight:600;white-space:nowrap}
+    #mcpause-shop .mp-more{margin-top:16px}
+    #mcpause-shop summary{cursor:pointer;min-height:44px;padding:10px 0;color:var(--mp-sub);font-size:12px}
+    #mcpause-shop .mp-button{min-height:44px;padding:10px 18px;border:1px solid var(--mp-line);border-radius:22px;background:var(--mp-bg);font-weight:600;line-height:1.4}
+    #mcpause-shop .mp-button-primary{background:var(--mp-yellow);color:var(--mp-on-yellow);border-color:var(--mp-yellow)}
+    #mcpause-shop .mp-back{border:0;background:transparent;min-height:44px;padding:0;color:var(--mp-sub);font-weight:500}
+    #mcpause-shop .mp-editor{padding:12px 24px 24px}
+    #mcpause-shop .mp-intro{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:22px;margin:8px 0 20px}
+    #mcpause-shop .mp-intro:has(.mp-hero:not([hidden])){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    #mcpause-shop .mp-hero{background:var(--mp-warm);border-radius:16px;text-align:center;padding:16px}
+    #mcpause-shop .mp-hero img{display:block;width:100%;height:200px;object-fit:contain}
+    #mcpause-shop .mp-hero figcaption{font-size:11px;color:var(--mp-sub);margin-top:6px}
+    #mcpause-shop .mp-title{font-size:24px;font-weight:750;line-height:1.35;margin-bottom:12px}
+    #mcpause-shop .mp-detail-copy{display:flex;align-items:flex-start;flex-direction:column;gap:12px}
+    #mcpause-shop .mp-round{border-top:1px solid var(--mp-line);padding:20px 0}
+    #mcpause-shop .mp-round-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    #mcpause-shop .mp-round-heading h4{font-size:16px;font-weight:650}
+    #mcpause-shop .mp-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+    #mcpause-shop .mp-choice{position:relative;display:flex;align-items:center;flex-direction:column;gap:6px;min-width:0;padding:14px 10px 12px;border:1px solid var(--mp-line);border-radius:10px;background:var(--mp-bg);text-align:center;cursor:pointer;font-size:12px;line-height:1.4}
+    #mcpause-shop .mp-choice:has(input:checked){border-color:var(--mp-yellow);background:var(--mp-warm);box-shadow:inset 0 0 0 1px var(--mp-yellow)}
+    #mcpause-shop .mp-choice input{align-self:flex-end;accent-color:var(--mp-yellow);width:16px;height:16px;margin:0}
+    #mcpause-shop .mp-choice img{width:100%;height:66px;object-fit:contain}
+    #mcpause-shop .mp-choice-name{flex:1}
+    #mcpause-shop .mp-extra{color:var(--mp-sub);font-size:11px}
+    #mcpause-shop .mp-fixed{display:flex;gap:14px;align-items:center}
+    #mcpause-shop .mp-fixed img{width:74px;height:66px;object-fit:contain}
+    #mcpause-shop .mp-mods{margin-top:14px}
+    #mcpause-shop .mp-mod-label{font-size:12px;font-weight:600;margin-bottom:8px}
+    #mcpause-shop .mp-pills{display:flex;flex-wrap:wrap;gap:8px}
+    #mcpause-shop .mp-pill{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:8px 14px;border:1px solid var(--mp-line);border-radius:7px;background:var(--mp-bg);cursor:pointer;font-size:12px}
+    #mcpause-shop .mp-pill:has(input:checked){border-color:var(--mp-yellow);background:var(--mp-warm);box-shadow:inset 0 0 0 1px var(--mp-yellow)}
+    #mcpause-shop .mp-pill input{accent-color:var(--mp-yellow);margin:0}
+    #mcpause-shop .mp-number{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px}
+    #mcpause-shop .mp-number input{max-width:80px;border:1px solid var(--mp-line);background:var(--mp-bg);border-radius:8px;padding:10px}
+    #mcpause-shop .mp-selection{font-size:12px;color:var(--mp-sub);margin:0 0 16px;line-height:1.7}
+    #mcpause-shop .mp-checkout{padding:18px;border-radius:14px;background:var(--mp-panel)}
+    #mcpause-shop .mp-checkout-main{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+    #mcpause-shop .mp-checkout-price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+    #mcpause-shop .mp-checkout-actions{display:flex;align-items:center;justify-content:center}
+    #mcpause-shop .mp-checkout-actions .mp-button{display:flex;align-items:center;justify-content:center}
+    #mcpause-shop .mp-fees{font-size:11px;color:var(--mp-sub);margin-top:10px}
+    #mcpause-shop .mp-error{color:var(--mp-red);font-size:12px;margin-bottom:10px}
+    #mcpause-shop .mp-status{padding:0 24px 16px;font-size:12px}
+    #mcpause-shop .mp-status:empty{display:none}
+    #mcpause-shop .mp-fallback{padding:0 24px 24px;font-size:12px}
+    #mcpause-shop .mp-fallback textarea{display:block;width:100%;height:140px;padding:12px;margin:10px 0;border:1px solid var(--mp-line);border-radius:10px;background:var(--mp-panel);resize:vertical;font-size:12px}
+    #mcpause-shop .mp-photo-unavailable{color:var(--mp-sub);font-size:12px}
+    #mcpause-shop .mp-card-compare{border-top:1px solid var(--mp-line);margin-top:22px;padding-top:20px}
+    #mcpause-shop .mp-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    #mcpause-shop .mp-card-heading h4{font-size:16px;font-weight:650}
+    #mcpause-shop .mp-card-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;font-variant-numeric:tabular-nums}
+    #mcpause-shop .mp-card-table th,#mcpause-shop .mp-card-table td{padding:9px 5px;border-bottom:1px solid var(--mp-line);text-align:right}
+    #mcpause-shop .mp-card-table th:first-child,#mcpause-shop .mp-card-table td:first-child{text-align:left}
+    #mcpause-shop .mp-card-net{margin:8px 0;font-weight:600}
+    #mcpause-shop .mp-payback{margin-top:14px;display:grid;gap:8px}
+    @media(max-width:420px){#mcpause-shop .mp-categories{flex-wrap:wrap}#mcpause-shop .mp-category{flex:1 1 85px}}
+    @media(max-width:600px){#mcpause-shop .mp-menu-layout{grid-template-columns:80px minmax(0,1fr)}#mcpause-shop .mp-menu-content{padding:18px 14px}#mcpause-shop .mp-meal-photo{flex-basis:108px}#mcpause-shop .mp-meal-photo img{width:108px;height:110px}#mcpause-shop .mp-meal{gap:12px;padding:12px}#mcpause-shop .mp-meal-name{font-size:16px}#mcpause-shop .mp-price{font-size:22px}#mcpause-shop .mp-intro:has(.mp-hero:not([hidden])){grid-template-columns:1fr}#mcpause-shop .mp-hero img{height:210px}#mcpause-shop .mp-choices{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:420px){#mcpause-shop{border-radius:0}#mcpause-shop .mp-header{padding:20px 16px 16px}#mcpause-shop .mp-brand{font-size:20px}#mcpause-shop .mp-menu-layout{display:block}#mcpause-shop .mp-categories{flex-direction:row;padding:8px 16px;gap:8px}#mcpause-shop .mp-category{min-height:44px;padding:8px 16px}#mcpause-shop .mp-category[aria-pressed=true]{background:var(--mp-yellow);color:var(--mp-on-yellow)}#mcpause-shop .mp-category[aria-pressed=true]:before{display:none}#mcpause-shop .mp-menu-content{padding:18px 16px}#mcpause-shop .mp-meal{gap:10px}#mcpause-shop .mp-meal-photo{flex-basis:96px}#mcpause-shop .mp-meal-photo img{width:96px;height:108px}#mcpause-shop .mp-meal-description{display:none}#mcpause-shop .mp-pick{padding:6px 10px}#mcpause-shop .mp-editor{padding:10px 16px 20px}#mcpause-shop .mp-title{font-size:22px}#mcpause-shop .mp-choices{grid-template-columns:repeat(2,minmax(0,1fr))}#mcpause-shop .mp-choice img{height:72px}#mcpause-shop .mp-checkout{padding:16px}#mcpause-shop .mp-checkout-main{align-items:stretch;flex-direction:column}#mcpause-shop .mp-checkout-main .mp-button{width:100%}#mcpause-shop .mp-fallback textarea{font-size:16px}}
+    #mcpause-shop [hidden]{display:none!important}
+  </style>
+  <header class="mp-header">
+    <h2 class="mp-brand" data-heading>麦麦暂停键 · 选这一餐</h2>
+    <div class="mp-context" data-context></div>
+    <div class="mp-caption mp-delivery" data-delivery></div>
+  </header>
+  <section class="mp-menu-layout" data-recommendations aria-label="推荐餐品">
+    <nav class="mp-categories" data-categories aria-label="餐品分类"></nav>
+    <div class="mp-menu-content">
+      <h3 class="mp-section-heading" data-list-title>这一餐，先看新品</h3>
+      <p class="mp-caption mp-menu-caption">菜单参考价 · 供应以重新核价为准</p>
+      <div class="mp-meals" data-cards></div>
+      <details data-more class="mp-more"><summary data-more-label></summary><div class="mp-meals" data-more-cards></div></details>
+    </div>
+  </section>
+  <section class="mp-editor" data-editor hidden aria-label="调整所选套餐">
+    <button type="button" class="mp-back" data-back>‹ 返回推荐</button>
+    <div class="mp-intro">
+      <figure class="mp-hero" data-hero hidden></figure>
+      <div class="mp-detail-copy">
+        <span class="mp-badge" data-detail-badge hidden>新品</span>
+        <h3 class="mp-title" data-title></h3>
+        <div><span class="mp-price" data-food-price></span><span class="mp-caption"> 餐品预估价</span></div>
+      </div>
+    </div>
+    <div data-rounds></div>
+    <div data-product-mods></div>
+    <div class="mp-selection" data-selection aria-live="polite"></div>
+    <div data-error role="alert" class="mp-error"></div>
+    <div class="mp-checkout">
+      <div class="mp-checkout-main">
+        <div>
+          <div class="mp-checkout-price" aria-live="polite"><span data-price-label>预估合计</span><span class="mp-price" data-price></span></div>
+          <div class="mp-fees" data-fees></div>
+          <div data-live-quote aria-live="polite"></div>
+        </div>
+        <div class="mp-checkout-actions">
+          <button type="button" class="mp-button mp-button-primary" data-quote>按此搭配重新核价</button>
+          <button type="button" class="mp-button" data-cart-add hidden>加入餐单</button>
+        </div>
+      </div>
+    </div>
+    <section class="mp-card-compare" data-card-section aria-label="开卡费用与优惠对比">
+      <div class="mp-card-heading">
+        <h4>开卡优惠</h4>
+        <button type="button" class="mp-button" data-compare-card>比较开卡优惠</button>
+      </div>
+      <p class="mp-caption" data-card-status>比较同一餐单的卡费、减免和实付金额</p>
+      <div data-card-results hidden>
+        <p class="mp-card-net" data-card-net aria-live="polite"></p>
+        <p data-card-totals></p>
+        <details>
+        <summary>费用与回本明细</summary>
+        <p data-card-name></p>
+        <table class="mp-card-table" aria-label="同一餐单开卡前后的费用">
+          <thead><tr><th scope="col">费用</th><th scope="col">不开卡</th><th scope="col">加购权益卡</th></tr></thead>
+          <tbody data-card-rows></tbody>
+        </table>
+        <p data-card-gross></p>
+        <div class="mp-payback">
+          <label class="mp-number">假设后续每单省（元）<input type="number" min="0" step="0.01" data-repeat-saving></label>
+          <p data-break-even aria-live="polite"></p>
+          <p class="mp-caption">默认假设后续每次优惠与本单相同。后续减免、次数及续费规则待核实；回本估算需在卡有效期内成立。</p>
+        </div>
+        </details>
+      </div>
+    </section>
+  </section>
+  <div class="mp-status" data-feedback role="status" aria-live="polite"></div>
+  <div class="mp-fallback" data-fallback-label hidden>
+    <label>将这份搭配带回当前聊天核价<textarea data-fallback readonly></textarea></label>
+    <button type="button" class="mp-button mp-button-primary" data-copy>复制核价请求</button>
+  </div>
+  <script type="application/json" id="mcpause-shop-data">__MCPAUSE_SHOP_DATA__</script>
+  <script>
+  (() => {
+    const root = document.getElementById('mcpause-shop');
+    const data = JSON.parse(root.querySelector('#mcpause-shop-data').textContent);
+    const one = selector => root.querySelector(selector);
+    const money = value => Number.isFinite(value) ? '¥' + (value / 100).toFixed(2) : '待核价';
+    const node = (tag, text, cls) => { const el = document.createElement(tag); if(text !== undefined) el.textContent=text; if(cls) el.className=cls; return el; };
+    const key = JSON.stringify([data.context.storeCode,data.context.beCode,data.context.orderType,data.context.reservationDate,data.cards.map(c=>c.code)]);
+    const states = {}, expandedRounds = new Set();
+    let selected = data.selected, view = 'recommendations', category = 'all', sending = false, modGroup = 0;
+    let repeatSaving = data.card_comparison?.repeat_saving_assumption_cents ?? 0;
+    let detailTimer=null, detailKey='', detailVersion=0, detailStatus='', detailFailed=false;
+    const stable = value => JSON.stringify(value, (_, v) => v && typeof v==='object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])) : v);
+    function photo(parent,url,name) {
+      if(!data.images_enabled||!url)return false;
+      const img=node('img');img.src=url;img.alt=name;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+      img.addEventListener('error',()=>{img.hidden=true;img.dataset.failed='true';parent.append(node('span','餐品图暂不可用','mp-photo-unavailable'));},{once:true});
+      parent.append(img);return true;
+    }
+    const card = () => data.cards.find(c=>c.code===selected);
+    const defaultMods = groups => groups.map(g=>g.values.map(v=>Number.isInteger(v.selectedQuantity)?v.selectedQuantity:0));
+    const firstChoice = r => r.choices.find(c=>c.default) || r.choices[0];
+    const stateFor = c => {
+      if(!states[c.code]) states[c.code]={rounds:Object.fromEntries((c.detail?.rounds||[]).map(r=>[r.id,firstChoice(r)?.code])),mods:{},productMods:defaultMods(c.detail?.modifications||[])};
+      return states[c.code];
+    };
+    const choiceFor = (c,r) => r.choices.find(x=>x.code===stateFor(c).rounds[r.id]);
+    const single = r => r.min===1&&r.max===1;
+    function choicesFor(c,r){
+      if(single(r)){const ch=choiceFor(c,r);return ch?[{ch,quantity:1}]:[];}
+      const s=stateFor(c);s.counts||={};s.counts[r.id]||=Object.fromEntries(r.choices.map(ch=>[ch.code,ch.quantity||0]));
+      return r.choices.filter(ch=>s.counts[r.id][ch.code]>0).map(ch=>({ch,quantity:s.counts[r.id][ch.code]}));
+    }
+    const modSlot = (c,r,ch) => r.id + ':' + ch.code;
+    const modsFor = (c,r,ch) => { const s=stateFor(c), slot=modSlot(c,r,ch); return s.mods[slot] ||= defaultMods(ch.modifications); };
+    const maxValue = v => Number.isInteger(v.maxQuantity)&&v.maxQuantity>=0?v.maxQuantity:20;
+    const isIce = g => g.values.some(v=>['去冰','少冰','多冰'].includes(v.name));
+    function validateMods(groups,values) {
+      for(let gi=0;gi<groups.length;gi++) {
+        const group=groups[gi], amounts=values[gi]||[], chosen=amounts.filter(q=>q>0).length;
+        if(chosen<group.min||chosen>group.max) return '请按配料要求完成选择。';
+        for(let vi=0;vi<group.values.length;vi++) {
+          const v=group.values[vi], q=amounts[vi];
+          if(!Number.isInteger(q)||q<0||q>maxValue(v)||(q>0&&q<(v.minQuantity||0))||(q>0&&!v.selectedKey)) return '配料数量或选项无效，请重新选择。';
+        }
+      }
+      return '';
+    }
+    function validation(c) {
+      if(!c?.detail) return '需要先读取这份餐品的可选搭配。';
+      for(const r of c.detail.rounds) {
+        const choices=choicesFor(c,r),total=choices.reduce((n,x)=>n+x.quantity,0);
+        if(total<r.min||total>r.max) return r.name+'需要选择 '+r.min+'–'+r.max+' 份。';
+        for(const {ch,quantity} of choices){
+          if(!Number.isInteger(quantity)||quantity<1||(ch.max>=0&&quantity>ch.max))return '餐品数量不符合要求。';
+          const error=validateMods(ch.modifications,modsFor(c,r,ch));if(error)return error;
+        }
+      }
+      return validateMods(c.detail.modifications,stateFor(c).productMods);
+    }
+    function modPayload(groups,values) {
+      const result=[];
+      groups.forEach((g,gi)=>g.values.forEach((v,vi)=>{
+        const quantity=values[gi][vi], selectedKey=quantity>0?v.selectedKey:v.unselectedKey;
+        if(selectedKey) result.push({code:v.code,key:selectedKey,quantity});
+      }));
+      return result.length?{values:result}:null;
+    }
+    function itemFor(c) {
+      const item={productCode:c.code,quantity:1};
+      if(c.detail.rounds.length) item.roundList=c.detail.rounds.map(r=>{
+        return {round:r.id,comboItemList:choicesFor(c,r).map(({ch,quantity})=>{const entry={code:ch.code,quantity},modification=modPayload(ch.modifications,modsFor(c,r,ch));if(modification)entry.modification=modification;return entry;})};
+      });
+      const modification=modPayload(c.detail.modifications,stateFor(c).productMods);
+      if(modification) item.modification=modification;
+      return item;
+    }
+    function modDelta(groups,values) {
+      let amount=0;
+      for(let gi=0;gi<groups.length;gi++) for(let vi=0;vi<groups[gi].values.length;vi++) {
+        const v=groups[gi].values[vi], delta=values[gi][vi]-(v.selectedQuantity||0);
+        if(delta&&!Number.isInteger(v.price)) return null;
+        amount+=delta*(v.price||0);
+      }
+      return amount;
+    }
+    function description(c) {
+      if(!c?.detail) return [];
+      const parts=[];
+      for(const r of c.detail.rounds) {
+        for(const {ch,quantity} of choicesFor(c,r)){
+        const mods=modsFor(c,r,ch), chosen=[];
+        ch.modifications.forEach((g,gi)=>g.values.forEach((v,vi)=>{
+          if(mods[gi][vi]>0) chosen.push(v.name+(mods[gi][vi]>1?'×'+mods[gi][vi]:''));
+          else if(v.unselectedKey&&v.selectedQuantity>0) chosen.push('不加'+v.name);
+        }));
+        parts.push(ch.name+(quantity>1?'×'+quantity:'')+(chosen.length?'（'+chosen.join('、')+'）':''));
+        }
+      }
+      c.detail.modifications.forEach((g,gi)=>g.values.forEach((v,vi)=>{const quantity=stateFor(c).productMods[gi][vi];if(quantity>0)parts.push(v.name+(quantity>1?'×'+quantity:''));else if(v.unselectedKey&&v.selectedQuantity>0)parts.push('不加'+v.name);}));
+      return parts;
+    }
+    function updateSummary() {
+      const c=card(); if(!c?.detail) return;
+      const error=validation(c);
+      one('[data-error]').textContent=error;
+      one('[data-quote]').disabled=Boolean(error)||sending;
+      let food=c.price, known=Number.isInteger(c.price);
+      for(const r of c.detail.rounds) {
+        if(!single(r)){known=false;continue;}
+        const ch=choiceFor(c,r); if(!ch) {known=false;continue;}
+        const extra=modDelta(ch.modifications,modsFor(c,r,ch));
+        if(ch.difference===null||extra===null) known=false;
+        else food+=ch.difference+extra;
+      }
+      const extra=modDelta(c.detail.modifications,stateFor(c).productMods);
+      if(extra===null) known=false; else food+=extra;
+      const delivery=data.fees.deliveryPrice, packing=data.fees.packingPrice;
+      const hasFees=Number.isInteger(delivery)&&Number.isInteger(packing);
+      one('[data-price-label]').textContent=hasFees?'预估合计':'餐品预估';
+      one('[data-price]').textContent=known?money(food+(hasFees?delivery+packing:0)):'待核价';
+      one('[data-food-price]').textContent=known?money(food):'待核价';
+      one('[data-fees]').textContent=hasFees?'餐品 '+(known?money(food):'待核价')+' · 配送 '+money(delivery)+' · 打包 '+money(packing)+'（费用参考上次报价）':'配送和打包费尚未核实';
+      one('[data-selection]').textContent=description(c).join(' ＋ ');
+      const quote=data.latest_quote, matches=quote&&!error&&stable(quote.items)===stable([itemFor(c)]);
+      one('[data-live-quote]').textContent='';
+      if(matches){one('[data-price-label]').textContent='不开卡实付';one('[data-price]').textContent=money(quote.price);one('[data-fees]').textContent='含配送 '+money(quote.deliveryPrice)+' · 打包 '+money(quote.packingPrice);}
+      one('[data-cart-add]').disabled=Boolean(error)||sending;
+      updateCardComparison(c,error);
+      scheduleDetailComparison();
+    }
+    function scheduleDetailComparison(force=false) {
+      if(!data.browser_session||typeof window.mcpauseCompare!=='function'||view!=='detail')return;
+      const c=card();
+      if(validation(c)){clearTimeout(detailTimer);detailVersion++;detailKey='';return;}
+      const selection=[itemFor(c)],signature=stable(selection);
+      if(!force&&signature===detailKey)return;
+      detailKey=signature;const version=++detailVersion;clearTimeout(detailTimer);
+      data.card_comparison=null;data.latest_quote=null;detailFailed=false;detailStatus='正在自动计算这份搭配的开卡优惠…';updateCardComparison(c,'');
+      one('[data-live-quote]').textContent='';
+      detailTimer=setTimeout(async()=>{
+        try {
+          const result=await window.mcpauseCompare(selection,0,force);
+          if(version!==detailVersion||view!=='detail'||validation(card())||stable([itemFor(card())])!==signature)return;
+          data.latest_quote=result.quote;data.card_comparison=result.comparison;
+          if(result.comparison)repeatSaving=result.comparison.repeat_saving_assumption_cents;
+          detailStatus=result.unavailable||'';detailFailed=!result.comparison&&result.option_count>0;
+          updateSummary();remember();
+        } catch(error) {
+          if(version!==detailVersion)return;
+          detailStatus='开卡优惠待核实：'+error.message;detailFailed=true;updateCardComparison(card(),validation(card()));
+        }
+      },450);
+    }
+    function updatePayback() {
+      const report=data.card_comparison;
+      if(!report)return;
+      const remaining=report.card.fee_cents-report.gross_saving_cents;
+      const orders=remaining<=0?1:repeatSaving>0?1+Math.ceil(remaining/repeatSaving):null;
+      one('[data-break-even]').textContent=repeatSaving===null?'请输入非负金额，最多两位小数。':orders===1?'本次优惠已覆盖卡费。':orders?'按此假设，第 '+orders+' 次用餐回本（含这次）。':'后续每单没有节省，按此假设无法回本。';
+    }
+    function updateCardComparison(c,error) {
+      one('[data-compare-card]').disabled=Boolean(error)||sending;
+      one('[data-compare-card]').hidden=Boolean(data.browser_session&&!detailFailed);
+      const report=data.card_comparison;
+      const context=Object.fromEntries(['storeCode','beCode','beType','orderType','reservationDate'].filter(k=>data.context[k]!==undefined).map(k=>[k,data.context[k]]));
+      const matches=report&&!error&&stable(report.selection)===stable({context,items:[itemFor(c)]});
+      one('[data-card-results]').hidden=!matches;
+      one('[data-card-status]').textContent=data.browser_session&&detailStatus?detailStatus:!report?'比较同一餐单的卡费、减免和实付金额':!matches?'搭配已改变，请重新比较开卡优惠。':'';
+      if(!matches)return;
+      one('[data-card-name]').textContent=report.card.name+' · '+new Date(report.quoted_at).toLocaleTimeString('zh-CN',{hour12:false})+' 核价';
+      one('[data-card-totals]').textContent='不开卡 '+money(report.without_card.price)+' · 随单开卡 '+money(report.with_card.price)+'（含卡费 '+money(report.card.fee_cents)+'）';
+      const rows=one('[data-card-rows]');rows.replaceChildren();
+      for(const [field,label] of [['cardFee','开卡费'],['foodPrice','餐品'],['deliveryPrice','配送费'],['packingPrice','打包费'],['tablewarePrice','餐具费'],['price','本次实付']]) {
+        const before=report.without_card[field],after=report.with_card[field];
+        const row=node('tr'),heading=node('th',label);heading.scope='row';
+        const waived=before>0&&after===0&&['deliveryPrice','packingPrice','tablewarePrice'].includes(field);
+        row.append(heading,node('td',before===null?'待核实':money(before)),node('td',(after===null?'待核实':money(after))+(waived?' · 已免':'')));rows.append(row);
+      }
+      const net=report.net_saving_cents,gross=report.gross_saving_cents;
+      one('[data-card-gross]').textContent=gross>=0?'本单优惠 '+money(gross)+'（未扣卡费）':'未计卡费，餐品及费用增加 '+money(-gross);
+      one('[data-card-net]').textContent=net>0?'含卡费，本单净省 '+money(net):net<0?'含卡费，本单多付 '+money(-net):'含卡费，本单实付相同';
+      one('[data-repeat-saving]').value=repeatSaving===null?'':(repeatSaving/100).toFixed(2);
+      updatePayback();
+    }
+    function restoreComparedSelection() {
+      const report=data.card_comparison, item=report?.selection.items[0];
+      const context=Object.fromEntries(['storeCode','beCode','beType','orderType','reservationDate'].filter(k=>data.context[k]!==undefined).map(k=>[k,data.context[k]]));
+      if(!item||report.selection.items.length!==1||item.productCode!==selected||stable(context)!==stable(report.selection.context))return;
+      restore({privateContent:{key,selected,view:'detail',category:'all',items:{[selected]:item}}});
+    }
+    function drawMods(parent,groups,values) {
+      groups.forEach((g,gi)=>{
+        const ice=isIce(g), title=ice?'冰量':'配料调整', host=node('div',undefined,'mp-mods');
+        if(!ice) { const details=node('details'), summary=node('summary',title);details.append(summary,host);parent.append(details); }
+        else {host.append(node('div','冰量','mp-mod-label'));parent.append(host);}
+        const content=node('div',undefined,'mp-pills');host.append(content);
+        if(g.max===1&&g.values.every(v=>maxValue(v)<=1)) {
+          const options=g.values.map((v,i)=>({value:String(i),label:v.name+(v.price>0?'（+'+money(v.price)+'）':'')}));
+          if(g.min===0) options.unshift({value:'',label:'不添加'});
+          const index=values[gi].findIndex(q=>q>0), name='mod-'+(++modGroup);
+          content.setAttribute('role','radiogroup');content.setAttribute('aria-label',title);
+          options.forEach(option=>{
+            const label=node('label',undefined,'mp-pill'), input=node('input');
+            input.type='radio';input.name=name;input.value=option.value;input.checked=option.value===(index<0?'':String(index));input.setAttribute('aria-label',option.label);
+            input.addEventListener('change',()=>{values[gi]=g.values.map((v,i)=>String(i)===input.value?1:0);updateSummary();remember();});
+            label.append(input,node('span',option.label));content.append(label);
+          });
+        } else {
+          g.values.forEach((v,vi)=>{
+            if(maxValue(v)<=1) {
+              const label=node('label',undefined,'mp-pill'), input=node('input');
+              input.type='checkbox';input.checked=values[gi][vi]>0;input.setAttribute('aria-label',v.name);
+              input.addEventListener('change',()=>{values[gi][vi]=input.checked?1:0;updateSummary();remember();});
+              label.append(input,node('span',v.name+(v.price>0?'（+'+money(v.price)+'）':'')));content.append(label);
+            } else {
+              const label=node('label',v.name,'mp-number'), input=node('input');
+              input.type='number';input.min='0';input.max=String(maxValue(v));input.step='1';input.value=values[gi][vi];input.setAttribute('aria-label',v.name+'数量');
+              input.addEventListener('input',()=>{values[gi][vi]=Number(input.value);updateSummary();remember();});
+              label.append(input);content.append(label);
+            }
+          });
+        }
+      });
+    }
+    function changeChoice(c,r,code) {
+      const previous=choiceFor(c,r), oldMods=previous?modsFor(c,r,previous):[];
+      const oldIce=previous?.modifications.findIndex(isIce);
+      const iceName=oldIce>=0?previous.modifications[oldIce].values.find((v,i)=>oldMods[oldIce][i]>0)?.name:null;
+      stateFor(c).rounds[r.id]=code;
+      const next=choiceFor(c,r), values=modsFor(c,r,next);
+      const newIce=next.modifications.findIndex(isIce);
+      if(iceName&&newIce>=0) {
+        const index=next.modifications[newIce].values.findIndex(v=>v.name===iceName);
+        if(index>=0) values[newIce]=next.modifications[newIce].values.map((v,i)=>i===index?1:0);
+      }
+      drawEditor();
+      Array.from(root.querySelectorAll('[data-round-choice]')).find(input=>input.dataset.roundChoice===r.id&&input.value===code)?.focus({preventScroll:true});
+      remember();
+    }
+    function drawEditor() {
+      const c=card();
+      if(!c) return;
+      one('[data-title]').textContent=c.name;
+      one('[data-detail-badge]').hidden=!c.new;
+      const hero=one('[data-hero]');hero.replaceChildren();
+      hero.hidden=!photo(hero,c.detail?.image||c.image,c.name);
+      if(!hero.hidden)hero.append(node('figcaption','官方默认搭配图 · 以所选餐品为准'));
+      const rounds=one('[data-rounds]'), product=one('[data-product-mods]');rounds.replaceChildren();product.replaceChildren();
+      if(!c.detail) {one('[data-error]').textContent='详情尚未加载，请查询后继续改配。';one('[data-quote]').disabled=true;one('[data-cart-add]').disabled=true;one('[data-compare-card]').disabled=true;one('[data-card-results]').hidden=true;one('[data-card-status]').textContent='读取套餐详情后可比较开卡优惠。';one('[data-selection]').textContent='';one('[data-live-quote]').textContent='';one('[data-price]').textContent=money(c.price);one('[data-food-price]').textContent=money(c.price);one('[data-fees]').textContent='未核价';return;}
+      for(const r of c.detail.rounds) {
+        const section=node('section',undefined,'mp-round'), heading=node('div',undefined,'mp-round-heading');
+        heading.append(node('h4',r.choices.length===1?'套餐餐品':r.name.replace(/^选择(?:套餐内)?/,'')),node('span',single(r)?'选 1 份':'选 '+r.min+'–'+r.max+' 份','mp-caption'));section.append(heading);
+        section.setAttribute('aria-label',r.name);
+        if(!single(r)){
+          choicesFor(c,r);
+          for(const ch of r.choices){const label=node('label',undefined,'mp-number');photo(label,ch.image,ch.name);label.append(node('span',ch.name));const input=node('input');input.type='number';input.min='0';input.max=String(ch.max<0?r.max:Math.min(ch.max,r.max));input.step='1';input.value=stateFor(c).counts[r.id][ch.code]||0;input.setAttribute('aria-label',ch.name+'数量');input.addEventListener('change',()=>{const q=Number(input.value);stateFor(c).counts[r.id][ch.code]=Number.isInteger(q)&&q>=0?Math.min(q,Number(input.max)):0;drawEditor();remember();});label.append(input);section.append(label);}
+        }else if(r.choices.length===1) {
+          const fixed=node('div',undefined,'mp-fixed');photo(fixed,r.choices[0].image,r.choices[0].name);fixed.append(node('span',r.choices[0].name));section.append(fixed);
+        } else {
+          const preferred=[choiceFor(c,r),firstChoice(r)];
+          if(r.name.includes('饮料')) preferred.push(...r.choices.filter(ch=>['无糖可口可乐中杯','雪碧中杯','阳光柠檬红茶中杯'].includes(ch.name)));
+          const first=[...new Map([...preferred,...r.choices].filter(Boolean).map(ch=>[ch.code,ch])).values()].slice(0,4);
+          const rest=r.choices.filter(ch=>!first.some(item=>item.code===ch.code));
+          const drawChoices=(parent,choices)=>{
+            const grid=node('div',undefined,'mp-choices');parent.append(grid);
+            choices.forEach(ch=>{
+              const label=node('label',undefined,'mp-choice'), input=node('input');
+              input.type='radio';input.name='round-'+c.code+'-'+r.id;input.value=ch.code;input.checked=choiceFor(c,r)?.code===ch.code;input.setAttribute('aria-label',ch.name);input.dataset.roundChoice=r.id;
+              input.addEventListener('change',()=>changeChoice(c,r,ch.code));label.append(input);photo(label,ch.image,ch.name);
+              label.append(node('span',ch.name,'mp-choice-name'),node('span',ch.difference===null?'待核价':ch.difference?(ch.difference>0?'+':'')+money(ch.difference):'不加价','mp-extra'));grid.append(label);
+            });
+          };
+          drawChoices(section,first);
+          if(rest.length) {
+            const more=node('details'), slot=c.code+':'+r.id;more.append(node('summary','更多选择（'+rest.length+'）'));more.open=expandedRounds.has(slot);
+            more.addEventListener('toggle',()=>{if(more.open)expandedRounds.add(slot);else expandedRounds.delete(slot);});drawChoices(more,rest);section.append(more);
+          }
+        }
+        for(const {ch} of choicesFor(c,r)){if(!single(r)&&ch.modifications.length)section.append(node('p',ch.name));drawMods(section,ch.modifications,modsFor(c,r,ch));}
+        rounds.append(section);
+      }
+      drawMods(product,c.detail.modifications,stateFor(c).productMods);
+      updateSummary();
+    }
+    function drawCards() {
+      const first=one('[data-cards]'), rest=one('[data-more-cards]');first.replaceChildren();rest.replaceChildren();
+      const nav=one('[data-categories]');nav.replaceChildren();
+      const groups=[{id:'all',name:'完整菜单'},...(data.cards.some(c=>c.new)?[{id:'new',name:'新品尝鲜'}]:[]),...(data.categories||[])];
+      for(const group of groups){const button=node('button',group.name,'mp-category');button.type='button';button.dataset.category=group.id;button.setAttribute('aria-pressed',String(category===group.id));button.addEventListener('click',()=>{category=group.id;drawCards();remember();});nav.append(button);}
+      one('[data-list-title]').textContent=groups.find(g=>g.id===category)?.name||'完整菜单';
+      const drawMeal=(parent,c)=>{
+        const button=node('button',undefined,'mp-meal');
+        button.type='button';button.setAttribute('aria-pressed',String(c.code===selected));button.setAttribute('aria-label','选择'+c.name);button.dataset.product=c.code;
+        if(c.new)button.dataset.new='';
+        const media=node('span',undefined,'mp-meal-photo');if(photo(media,c.image,c.name))button.append(media);
+        const copy=node('span',undefined,'mp-meal-copy');
+        if(c.new)copy.append(node('span','新品','mp-badge'));
+        copy.append(node('span',c.name,'mp-meal-name'));
+        if(c.detail?.rounds.length)copy.append(node('span',c.detail.rounds.map(r=>firstChoice(r)?.name).filter(Boolean).join(' · '),'mp-meal-description'));
+        const bottom=node('span',undefined,'mp-meal-bottom');bottom.append(node('span',money(c.price),'mp-price'),node('span',c.code===selected?'继续调整':'选餐品 +','mp-pick'));copy.append(bottom);button.append(copy);
+        button.addEventListener('click',()=>{
+          selected=c.code;view='detail';stateFor(c);drawCards();drawEditor();drawPage(true);remember();
+          if(!c.detail) send('请查询此餐品在当前门店的 query-meal-detail，并更新界面，保留我的选择；不要下单。选择数据：'+JSON.stringify({context:data.context,productCode:c.code}), 'detail', {code:c.code});
+        });
+        parent.append(button);
+      };
+      const section=(title,codes)=>{const cards=codes.map(code=>data.cards.find(c=>c.code===code)).filter(Boolean);if(!cards.length)return;const group=node('section',undefined,'mp-menu-group'),list=node('div',undefined,'mp-meals');group.append(node('h4',title),list);for(const c of cards)drawMeal(list,c);first.append(group);};
+      if(category==='all'){
+        if(data.priority_codes?.length)section('你想吃的 · '+data.intent,data.priority_codes);
+        else if(!data.intent)section('新品推荐',data.cards.filter(c=>c.new).map(c=>c.code));
+        for(const group of data.categories||[])section(group.name,group.codes);
+      }else if(category==='new')section('新品尝鲜',data.cards.filter(c=>c.new).map(c=>c.code));
+      else {const group=(data.categories||[]).find(g=>g.id===category);if(group)section(group.name,group.codes);}
+      one('[data-more]').hidden=true;
+    }
+    function drawPage(focus=false) {
+      const detail=view==='detail'&&Boolean(card());
+      one('[data-recommendations]').hidden=detail;
+      one('[data-editor]').hidden=!detail;
+      one('[data-heading]').textContent=detail?'麦麦暂停键 · 套餐详情':'麦麦暂停键 · 选这一餐';
+      if(detail)scheduleDetailComparison();else{clearTimeout(detailTimer);detailVersion++;detailKey='';}
+      if(!focus)return;
+      one('[data-feedback]').textContent='';
+      one('[data-fallback-label]').hidden=true;
+      one('[data-fallback]').value='';
+      const target=detail?one('[data-back]'):Array.from(root.querySelectorAll('[data-product]')).find(button=>button.dataset.product===selected);
+      if(!detail&&target&&one('[data-more]').contains(target))one('[data-more]').open=true;
+      target?.focus();
+    }
+    async function send(message,action,payload) {
+      if(sending) return;
+      sending=true;updateSummary();root.querySelectorAll('[data-product]').forEach(button=>button.disabled=true);const prompt='使用 $mcd-pause。'+message;
+      try {
+        if(data.browser_session&&typeof window.mcpauseRequest==='function'&&action){
+          const result=await window.mcpauseRequest(action,payload);
+          if(action==='detail'){const c=data.cards.find(c=>c.code===payload.code);c.detail=result.detail;delete states[c.code];if(selected===c.code)drawEditor();}
+          if(action==='quote')data.latest_quote=result;
+          if(action==='compare'){data.card_comparison=result.comparison;repeatSaving=result.comparison.repeat_saving_assumption_cents;}
+          one('[data-feedback]').textContent=action==='detail'?'可选搭配已更新。':'已按当前搭配完成查询。';
+        } else if(typeof window.openai?.sendFollowUpMessage==='function') {
+          await window.openai.sendFollowUpMessage({prompt,title:'更新这份餐单'});
+          one('[data-feedback]').textContent='已请求处理这份搭配，等待最新价格。';
+        } else {
+          one('[data-fallback-label]').hidden=false;one('[data-fallback]').value=prompt;
+          one('[data-feedback]').textContent='请求已整理，复制到当前聊天即可继续。';
+        }
+      } catch(error) {
+        if(data.browser_session)one('[data-feedback]').textContent=error.message||'查询失败，请稍后重试。';
+        else{one('[data-fallback-label]').hidden=false;one('[data-fallback]').value=prompt;one('[data-feedback]').textContent='发送未完成，可以复制下面的请求继续。';}
+      } finally {sending=false;updateSummary();root.querySelectorAll('[data-product]').forEach(button=>button.disabled=false);}
+    }
+    function remember() {
+      const c=card(), saved={};
+      for(const product of data.cards) if(states[product.code]&&product.detail&&!validation(product)) saved[product.code]=itemFor(product);
+      const snapshot={
+        modelContent:{mode:'live',stage:view==='detail'?'meal-customization':'meal-recommendations',selected:c?{code:c.code,name:c.name}:null,items:c?.detail&&!validation(c)?[itemFor(c)]:[],summary:c?description(c):[]},
+        privateContent:{key,selected,view,category,items:saved,cardComparisonAt:data.card_comparison?.quoted_at,repeatSaving}
+      };
+      if(typeof window.openai?.setWidgetState==='function')Promise.resolve(window.openai.setWidgetState(snapshot)).catch(()=>{});
+      else if(data.standalone)try{sessionStorage.setItem('mcpause-shopping',JSON.stringify(snapshot));}catch{}
+    }
+    function restoreMods(groups,payload) {
+      return groups.map(g=>g.values.map(v=>{
+        const selectedValue=(payload?.values||[]).find(x=>x.code===v.code&&x.key===v.selectedKey);
+        return selectedValue?selectedValue.quantity:0;
+      }));
+    }
+    function restore(snapshot) {
+      const saved=snapshot?.privateContent;if(!saved||saved.key!==key)return;
+      for(const c of data.cards) {
+        const item=saved.items?.[c.code];if(!c.detail||!item)continue;
+        const s=stateFor(c);
+        for(const r of c.detail.rounds) {
+          const selection=item.roundList?.find(x=>x.round===r.id)?.comboItemList;
+          if(!selection)continue;
+          if(single(r)&&selection.length===1&&selection[0].quantity===1)s.rounds[r.id]=selection[0].code;
+          if(!single(r)){s.counts||={};s.counts[r.id]=Object.fromEntries(r.choices.map(ch=>[ch.code,0]));}
+          for(const entry of selection){const ch=r.choices.find(x=>x.code===entry.code);if(!ch)continue;if(!single(r))s.counts[r.id][ch.code]=entry.quantity;const quantities=restoreMods(ch.modifications,entry.modification);if(!validateMods(ch.modifications,quantities))s.mods[modSlot(c,r,ch)]=quantities;}
+        }
+        const quantities=restoreMods(c.detail.modifications,item.modification);
+        if(!validateMods(c.detail.modifications,quantities))s.productMods=quantities;
+      }
+      if(data.cards.some(c=>c.code===saved.selected))selected=saved.selected;
+      view=saved.view==='detail'&&card()?'detail':'recommendations';
+      category=['all','new',...(data.categories||[]).map(g=>g.id)].includes(saved.category)?saved.category:'all';
+      if(category==='new'&&card()&&!card().new)category='all';
+      if(saved.cardComparisonAt===data.card_comparison?.quoted_at&&Number.isSafeInteger(saved.repeatSaving)&&saved.repeatSaving>=0)repeatSaving=saved.repeatSaving;
+      drawCards();drawEditor();drawPage();
+    }
+    one('[data-context]').textContent=data.context.label||'当前门店 · 实际可售菜单';
+    one('[data-delivery]').textContent=data.context.delivery_label||'';
+    if(data.standalone){root.dataset.standalone='';one('[data-quote]').textContent='带回聊天核价';one('[data-cart-add]').hidden=!data.browser_session;}
+    if(data.browser_session){one('[data-quote]').hidden=true;one('[data-card-section]').hidden=true;one('[data-cart-add]').className='mp-button mp-button-primary';}
+    one('[data-back]').addEventListener('click',()=>{view='recommendations';drawCards();drawPage(true);remember();});
+    one('[data-quote]').addEventListener('click',()=>{
+      const c=card();if(validation(c))return;
+      if(data.browser_session){scheduleDetailComparison(true);return;}
+      remember();
+      send('我选好这份搭配了。请核对当前门店实时详情及以下完整选择，沿用本聊天已保存的配送方式和地址，重新核价并展示新的确认单，包含配送、打包与优惠。此步不创建订单，也不沿用旧确认单。选择数据：'+JSON.stringify({context:data.context,items:[itemFor(c)],summary:description(c)}), 'quote', {items:[itemFor(c)]});
+    });
+    one('[data-compare-card]').addEventListener('click',()=>{
+      const c=card();if(validation(c))return;
+      if(data.browser_session){scheduleDetailComparison(true);return;}
+      remember();
+      send('请比较这份餐单不开卡与随单开卡的优惠。按 membership.md 流程查询当前 query-meals 的 withOrder 选项，对同一餐单分别 calculate-price；列出开卡费、配送/打包等减免、本次实付、扣卡费后的净省和有条件的回本次数，并把核价证据更新到当前两页界面。缺失权益或费用显示待核实，不用划线价算回本，不改变当前搭配，不开卡、不创建订单。选择数据：'+JSON.stringify({context:data.context,items:[itemFor(c)],summary:description(c)}), 'compare', {items:[itemFor(c)]});
+    });
+    one('[data-repeat-saving]').addEventListener('input',event=>{
+      const value=event.target.value;
+      if(/^\d+(?:\.\d{1,2})?$/.test(value)) {
+        const [whole,fraction='']=value.split('.'), amount=Number(whole)*100+Number(fraction.padEnd(2,'0'));
+        repeatSaving=Number.isSafeInteger(amount)?amount:null;
+      } else repeatSaving=null;
+      updatePayback();remember();
+    });
+    one('[data-copy]').addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(one('[data-fallback]').value);one('[data-feedback]').textContent='已复制，粘贴到当前聊天即可继续。';}
+      catch{one('[data-fallback]').focus();one('[data-fallback]').select();one('[data-feedback]').textContent='请复制已选中的请求，粘贴到当前聊天。';}
+    });
+    window.addEventListener('openai:set_globals',event=>{if(event.detail?.globals?.widgetState)restore(event.detail.globals.widgetState);});
+    one('[data-cart-add]').addEventListener('click',()=>{const c=card();if(!validation(c))window.mcpauseAddToCart?.({item:itemFor(c),name:c.name,summary:description(c)});});
+    if(data.standalone)window.mcpauseShopping={context:data.context,selected:()=>selected,description:()=>description(card()),cartChanged:updateSummary,start:()=>{if(view==='detail'&&card()&&!card().detail)send('', 'detail', {code:selected});else scheduleDetailComparison();}};
+    if(card()?.detail)stateFor(card());drawCards();drawEditor();drawPage();restoreComparedSelection();restore(window.openai?.widgetState);
+    if(data.standalone&&!window.openai?.widgetState)try{restore(JSON.parse(sessionStorage.getItem('mcpause-shopping')));}catch{}
+  })();
+  </script>
+</div>
